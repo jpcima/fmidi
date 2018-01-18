@@ -37,6 +37,9 @@ static void midi_reset(RtMidiOut &midiout)
         // program change
         { uint8_t msg[] { (uint8_t)((0b1100 << 4) | c), 0 };
             midiout.sendMessage(msg, sizeof(msg)); }
+        // pitch bend change
+        { uint8_t msg[] { (uint8_t)((0b1110 << 4) | c), 0, 0b1000000 };
+            midiout.sendMessage(msg, sizeof(msg)); }
     }
 }
 
