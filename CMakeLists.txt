@@ -1,0 +1,169 @@
+cmake_minimum_required(VERSION 3.6)
+
+project(fmidi VERSION 0.1 LANGUAGES C CXX)
+
+set(cmake_MODULE_DIR "${PROJECT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${cmake_MODULE_DIR}")
+
+option(FMIDI_ENABLE_DEBUG "enable debugging features" OFF)
+option(FMIDI_PIC "enable position independent code" ON)
+
+if(FMIDI_ENABLE_DEBUG)
+  add_definitions("-DFMIDI_DEBUG")
+endif()
+
+include(ExtraCompilerFlags)
+enable_gcc_warning(all)
+enable_colors()
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+
+if(CMAKE_SYSTEM_NAME MATCHES Windows)
+  add_definitions("-D_CRT_SECURE_NO_WARNINGS=1")
+endif()
+
+#####################
+# FEATURE DETECTION #
+#####################
+
+find_library(ev_LIBRARY ev)
+set(fmidi-player_BUILD FALSE)
+if(ev_LIBRARY)
+  set(fmidi-player_BUILD TRUE)
+else()
+  message(STATUS "libev is missing, NOT building library fmidi-player.")
+endif()
+
+set(fmidi-play_BUILD FALSE)
+if(fmidi-player_BUILD)
+  include(FindPkgConfig)
+  find_package(Curses)
+  pkg_check_modules(rtmidi rtmidi)
+  if(NOT rtmidi_FOUND)
+    message(STATUS "rtmidi is missing, NOT building program fmidi-play.")
+  elseif (NOT CURSES_FOUND)
+    message(STATUS "curses is missing, NOT building program fmidi-play.")
+  else()
+    set(fmidi-play_BUILD TRUE)
+  endif()
+endif()
+
+##############
+# THIRDPARTY #
+##############
+
+add_library(fmidi-fmt INTERFACE)
+target_include_directories(fmidi-fmt INTERFACE thirdparty/fmt)
+target_compile_definitions(fmidi-fmt INTERFACE "FMT_HEADER_ONLY=1")
+
+#############
+# LIBRARIES #
+#############
+
+set(fmidi_SOURCES
+  sources/fmidi/u_memstream.cc
+  sources/fmidi/fmidi_file.cc
+  sources/fmidi/fmidi_seq.cc
+  sources/fmidi/fmidi_util.cc)
+set(fmidi-player_SOURCES
+  sources/fmidi/fmidi_player.cc)
+
+add_library(fmidi SHARED ${fmidi_SOURCES})
+target_include_directories(fmidi
+  PUBLIC sources)
+target_compile_definitions(fmidi
+  PRIVATE "FMIDI_BUILD=1")
+target_link_libraries(fmidi
+  PRIVATE fmidi-fmt)
+set_target_properties(fmidi PROPERTIES
+  CXX_VISIBILITY_PRESET "hidden"
+  SOVERSION 0.1)
+if(FMIDI_PIC)
+  set_target_properties(fmidi PROPERTIES
+    POSITION_INDEPENDENT_CODE ON)
+endif()
+install(TARGETS fmidi
+  RUNTIME DESTINATION "bin"
+  LIBRARY DESTINATION "lib"
+  ARCHIVE DESTINATION "lib")
+install(FILES sources/fmidi/fmidi.h
+  DESTINATION "include")
+
+if(fmidi-player_BUILD)
+  add_library(fmidi-player SHARED ${fmidi-player_SOURCES})
+  target_compile_definitions(fmidi-player
+    PRIVATE "FMIDI_BUILD=1")
+  target_link_libraries(fmidi-player
+    PUBLIC fmidi "${ev_LIBRARY}")
+  set_target_properties(fmidi-player PROPERTIES
+    CXX_VISIBILITY_PRESET "hidden"
+    SOVERSION 0.1)
+  if(FMIDI_PIC)
+    set_target_properties(fmidi-player PROPERTIES
+      POSITION_INDEPENDENT_CODE ON)
+  endif()
+  install(TARGETS fmidi-player
+    RUNTIME DESTINATION "bin"
+    LIBRARY DESTINATION "lib"
+    ARCHIVE DESTINATION "lib")
+endif()
+
+###################
+# PKGCONFIG FILES #
+###################
+
+file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/fmidi.pc"
+  CONTENT "prefix=${CMAKE_INSTALL_PREFIX}
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: fmidi
+Description: A MIDI file input library
+Version: ${PROJECT_VERSION}
+Cflags: -I\${includedir}
+Libs: -L\${libdir} -lfmidi
+")
+install(FILES "${CMAKE_BINARY_DIR}/fmidi.pc"
+  DESTINATION "lib/pkgconfig")
+
+if(fmidi-player_BUILD)
+  file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/fmidi-player.pc"
+    CONTENT "prefix=${CMAKE_INSTALL_PREFIX}
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: fmidi-player
+Description: A MIDI file playback library
+Version: ${PROJECT_VERSION}
+Cflags: -I\${includedir}
+Libs: -L\${libdir} -lfmidi-player
+")
+  install(FILES "${CMAKE_BINARY_DIR}/fmidi-player.pc"
+    DESTINATION "lib/pkgconfig")
+endif()
+
+############
+# PROGRAMS #
+############
+
+add_executable(fmidi-read programs/midi-read.cc)
+target_link_libraries(fmidi-read PRIVATE fmidi fmidi-fmt)
+install(TARGETS fmidi-read
+  RUNTIME DESTINATION "bin")
+
+add_executable(fmidi-seq programs/midi-seq.cc)
+target_link_libraries(fmidi-seq PRIVATE fmidi fmidi-fmt)
+install(TARGETS fmidi-seq
+  RUNTIME DESTINATION "bin")
+
+if(fmidi-play_BUILD)
+  add_executable(fmidi-play programs/midi-play.cc)
+  target_link_libraries(fmidi-play
+    PRIVATE fmidi-player ${rtmidi_LIBRARIES} ${CURSES_LIBRARIES})
+  target_include_directories(fmidi-play
+    PRIVATE ${rtmidi_INCLUDE_DIRS} ${CURSES_INCLUDE_DIRS})
+  link_directories(${rtmidi_LIBRARY_DIRS})
+  install(TARGETS fmidi-play
+    RUNTIME DESTINATION "bin")
+endif()
