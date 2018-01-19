@@ -18,7 +18,7 @@ Tests are performed under different libraries with AddressSanitizer and identica
 
 <table>
   <tr><th>Library</th><th>Reading error</th><th>AddressSanitizer issue</th><th>LeakSanitizer issue</th></tr>
-  <tr><td>Fmidi</td><td>20</td><td>0</td><td>0</td></tr>
+  <tr><td>Fmidi 0.1</td><td>20</td><td>0</td><td>0</td></tr>
   <tr><td>libsmf 1.3</td><td>468</td><td>265</td><td>108</td></tr>
   <tr><td>portsmf 228</td><td>979</td><td>7</td><td>0</td></tr>
   <tr><td>libtimidity 0.2.5</td><td>493</td><td>0</td><td>0</td></tr>
