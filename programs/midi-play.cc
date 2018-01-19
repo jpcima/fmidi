@@ -87,12 +87,16 @@ static void update_status_display(player_context &ctx)
     mvprintln(row++, 1, "FILE %s", filename);
     mvprintln(row++, 1, "TIME %02u:%02u / %02u:%02u", tm, ts, dm, ds);
     mvprintln(row++, 1, "SPEED %d%%", ctx.speed);
+    attron(A_REVERSE);
+    mvprintln(row++, 1, "%s", ctx.play ? "PLAYING" : "PAUSED");
+    attroff(A_REVERSE);
     ++row;
     mvprintln(row++, 1, "FORMAT %u", info->format);
     mvprintln(row++, 1, "TRACKS %u", info->track_count);
     ++row;
     mvprintln(row++, 1,
-              "[space] play/pause   [pgup] previous file   [pgdn] next file");
+              "[space] play/pause   [esc] quit"
+              "   [pgup] previous file   [pgdn] next file");
     mvprintln(row++, 1,
               "[home] rewind   [left] go -5s   [right] go +5s"
               "   [<] slower   [>] faster");
@@ -134,7 +138,8 @@ static void on_stdin(struct ev_loop *loop, ev_io *w, int revents)
     int c = getch();
 
     switch (c) {
-    case 3:  // console break
+    case 27:  // escape
+    case 3:   // console break
         ctx.quit = true;
         ev_break(loop, EVBREAK_ONE);
         break;
