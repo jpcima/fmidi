@@ -27,6 +27,11 @@ endif()
 # FEATURE DETECTION #
 #####################
 
+find_package(Boost)
+if(Boost_FOUND)
+  add_definitions("-DFMIDI_USE_BOOST")
+endif()
+
 find_library(ev_LIBRARY ev)
 set(fmidi-player_BUILD FALSE)
 if(ev_LIBRARY)
@@ -63,6 +68,7 @@ target_compile_definitions(fmidi-fmt INTERFACE "FMT_HEADER_ONLY=1")
 
 set(fmidi_SOURCES
   sources/fmidi/u_memstream.cc
+  sources/fmidi/u_stdio.cc
   sources/fmidi/fmidi_file.cc
   sources/fmidi/fmidi_seq.cc
   sources/fmidi/fmidi_util.cc)
