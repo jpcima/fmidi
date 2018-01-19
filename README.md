@@ -9,3 +9,16 @@ In fact, a player with a terminal interface is provided as an [example](https://
 ## Design goals
 
 This library is designed for excellent compatibility. Downloaded MIDI files often come as corrupted, incomplete, or non-standard in many ways. Fmidi has a permissive reader, which attempts repairs when errors are detected, without compromise on the MIDI file standard.
+
+## Quality comparison
+
+Fmidi is tested on a collection of MIDI files and the results are displayed in the table below. The data gives an idea of the relative compatibility and robustness of the library.
+
+Tests are performed under different libraries with AddressSanitizer and identical environments. Under each error situation, the data indicates the number of problematic files.
+
+<table>
+  <tr><th>Library</th><th>Reading error</th><th>AddressSanitizer issue</th><th>LeakSanitizer issue</th></tr>
+  <tr><td>Fmidi</td><td>20</td><td>0</td><td>0</td></tr>
+  <tr><td>libsmf 1.3</td><td>468</td><td>265</td><td>108</td></tr>
+  <tr><th>Total files</th><td colspan="3">86808</td></tr>
+</table>
