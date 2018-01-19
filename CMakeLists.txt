@@ -7,9 +7,16 @@ list(APPEND CMAKE_MODULE_PATH "${cmake_MODULE_DIR}")
 
 option(FMIDI_ENABLE_DEBUG "enable debugging features" OFF)
 option(FMIDI_PIC "enable position independent code" ON)
+option(FMIDI_STATIC "build as static library" OFF)
 
 if(FMIDI_ENABLE_DEBUG)
-  add_definitions("-DFMIDI_DEBUG")
+  add_definitions("-DFMIDI_DEBUG=1")
+endif()
+if(FMIDI_STATIC)
+  add_definitions("-DFMIDI_STATIC=1")
+  set(fmidi_LIB_TYPE "STATIC")
+else()
+  set(fmidi_LIB_TYPE "SHARED")
 endif()
 
 include(ExtraCompilerFlags)
@@ -75,7 +82,7 @@ set(fmidi_SOURCES
 set(fmidi-player_SOURCES
   sources/fmidi/fmidi_player.cc)
 
-add_library(fmidi SHARED ${fmidi_SOURCES})
+add_library(fmidi "${fmidi_LIB_TYPE}" ${fmidi_SOURCES})
 target_include_directories(fmidi
   PUBLIC sources)
 target_compile_definitions(fmidi
@@ -97,7 +104,7 @@ install(FILES sources/fmidi/fmidi.h
   DESTINATION "include")
 
 if(fmidi-player_BUILD)
-  add_library(fmidi-player SHARED ${fmidi-player_SOURCES})
+  add_library(fmidi-player "${fmidi_LIB_TYPE}" ${fmidi-player_SOURCES})
   target_compile_definitions(fmidi-player
     PRIVATE "FMIDI_BUILD=1")
   target_link_libraries(fmidi-player
@@ -144,6 +151,7 @@ Description: A MIDI file playback library
 Version: ${PROJECT_VERSION}
 Cflags: -I\${includedir}
 Libs: -L\${libdir} -lfmidi-player
+Libs.private: -lev
 ")
   install(FILES "${CMAKE_BINARY_DIR}/fmidi-player.pc"
     DESTINATION "lib/pkgconfig")

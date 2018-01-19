@@ -10,9 +10,9 @@
 extern "C" {
 #endif
 
-#if defined(_WIN32) && defined(FMIDI_BUILD)
+#if defined(_WIN32) && defined(FMIDI_BUILD) && !defined(FMIDI_STATIC)
 # define FMIDI_API __declspec(dllexport)
-#elif defined(_WIN32) && !defined(FMIDI_BUILD)
+#elif defined(_WIN32) && !defined(FMIDI_BUILD) && !defined(FMIDI_STATIC)
 # define FMIDI_API __declspec(dllimport)
 #elif defined(__GNUC__)
 # define FMIDI_API __attribute__((visibility("default")))
