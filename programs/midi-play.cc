@@ -34,6 +34,11 @@ static void midi_reset(RtMidiOut &midiout)
         // reset all controllers
         { uint8_t msg[] { (uint8_t)((0b1011 << 4) | c), 121, 0 };
             midiout.sendMessage(msg, sizeof(msg)); }
+        // bank select
+        { uint8_t msg[] { (uint8_t)((0b1011 << 4) | c), 0, 0 };
+            midiout.sendMessage(msg, sizeof(msg)); }
+        { uint8_t msg[] { (uint8_t)((0b1011 << 4) | c), 32, 0 };
+            midiout.sendMessage(msg, sizeof(msg)); }
         // program change
         { uint8_t msg[] { (uint8_t)((0b1100 << 4) | c), 0 };
             midiout.sendMessage(msg, sizeof(msg)); }
