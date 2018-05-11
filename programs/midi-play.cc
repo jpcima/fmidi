@@ -296,6 +296,7 @@ int main(int argc, char *argv[])
     }
 
     midi_reset(midiout);
+    std::this_thread::sleep_for(stc::seconds(1));
 
     endwin();
 
