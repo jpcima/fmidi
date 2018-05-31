@@ -57,6 +57,45 @@ static void midi_sound_off(RtMidiOut &midiout)
     }
 }
 
+static void sc55_text_insert(RtMidiOut &midiout, const char *text)
+{
+    uint8_t buf[256];
+    size_t buflen = sizeof(buf);
+
+    size_t textmax = buflen - 10;
+    size_t textlen = strlen(text);
+    textlen = (textlen < textmax) ? textlen : textmax;
+
+    size_t index = 0;
+    buf[index++] = 0xf0;
+    buf[index++] = 0x41;  // manufacturer: Roland
+    buf[index++] = 0x10;  // device ID: default
+
+    buf[index++] = 0x45;  // model: SC-55
+    buf[index++] = 0x12;  // mode: send
+
+    size_t cs_start = index;
+    buf[index++] = 0x10;  // address[0]
+    buf[index++] = 0x00;  // address[1]
+    buf[index++] = 0x00;  // address[2]
+    // ASCII text
+    for (size_t i = 0; i < textlen; ++i) {
+        unsigned char c = text[i];
+        buf[index++] = c & 127;
+    }
+    size_t cs_end = index;
+
+    unsigned cs = 0;
+    for (size_t i = cs_start; i < cs_end; ++i)
+        cs += buf[i];
+    cs = (128 - (cs & 127)) & 127;
+
+    buf[index++] = cs;  // checksum
+    buf[index++] = 0xf7;
+
+    midiout.sendMessage(buf, index);
+}
+
 //
 static void mvprintln(int row, int col, const char *fmt, ...)
 {
@@ -284,6 +323,7 @@ int main(int argc, char *argv[])
         fmidi_player_finish_callback(plr.get(), &on_player_finish, &ctx);
 
         midi_reset(midiout);
+        sc55_text_insert(midiout, filename);
 
         fmidi_player_set_speed(plr.get(), ctx.speed * 1e-2);
         if (play)
