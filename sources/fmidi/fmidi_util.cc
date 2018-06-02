@@ -71,7 +71,7 @@ static bool fmidi_repr_meta(std::ostream &out, const uint8_t *data, uint32_t len
 
     switch (tag) {
     default:
-        fmt::print(out, "(meta/unknown :tag #x{:x})", tag);
+        fmt::print(out, "(meta/unknown :tag #x{:02x})", tag);
         return true;
     case 0x00: {  // sequence number
         if (len < 2) return false;
@@ -223,7 +223,7 @@ static bool fmidi_repr_midi(std::ostream &out, const uint8_t *data, uint32_t len
             return true;
         case 0b1011:
             if (len < 2) return false;
-            fmt::print(out, "(control #x{:x} {} :channel {})", b7(0), b7(1), ch);
+            fmt::print(out, "(control #x{:02x} {} :channel {})", b7(0), b7(1), ch);
             return true;
         case 0b1100:
             if (len < 1) return false;
@@ -259,14 +259,46 @@ std::ostream &operator<<(std::ostream &out, const fmidi_smf_t &smf)
     fmt::print(out, "\n  :tracks"
                "\n  (", unit);
 
+    struct RPN_Info {
+        unsigned lsb = 127, msb = 127;
+        bool nrpn = false;
+    };
+    RPN_Info channel_rpn[16];
+
     for (unsigned i = 0, n = info->track_count; i < n; ++i) {
         fmidi_track_iter_t it;
         fmidi_smf_track_begin(&it, i);
         if (i > 0)
             fmt::print(out, "\n   ");
         fmt::print(out, "(;;--- track {} ---;;", i);
-        while (const fmidi_event_t *evt = fmidi_smf_track_next(&smf, &it))
-            fmt::print(out, "\n    (:delta {:<5} {})", evt->delta, *evt);
+        while (const fmidi_event_t *evt = fmidi_smf_track_next(&smf, &it)) {
+            RPN_Info *rpn = nullptr;
+
+            if (evt->type == fmidi_event_message) {
+                unsigned status = evt->data[0];
+                unsigned channel = status & 0x0f;
+                // controllers
+                if (evt->datalen == 3 && (status & 0xf0) == 0xb0) {
+                    unsigned ctl = evt->data[1] & 0x7f;
+                    switch (ctl) {
+                    case 0x62: case 0x64:  // (N)RPN LSB
+                        rpn = &channel_rpn[channel];
+                        rpn->lsb = evt->data[2] & 0x7f, rpn->nrpn = ctl == 0x62;
+                        break;
+                    case 0x63: case 0x65:  // (N)RPN MSB
+                        rpn = &channel_rpn[channel];
+                        rpn->msb = evt->data[2] & 0x7f, rpn->nrpn = ctl == 0x63;
+                        break;
+                    }
+                }
+            }
+
+            fmt::print(out, "\n    (:delta {:<5} {}", evt->delta, *evt);
+            if (rpn)
+                fmt::print(out, " #|{}RPN #x{:02x} #x{:02x}|#",
+                           rpn->nrpn ? "N" : "", rpn->msb, rpn->lsb);
+            out.put(')');
+        }
         fmt::print(out, ")");
     }
     fmt::print(out, "))\n");
