@@ -289,6 +289,9 @@ std::ostream &operator<<(std::ostream &out, const fmidi_smf_t &smf)
                         rpn = &channel_rpn[channel];
                         rpn->msb = evt->data[2] & 0x7f, rpn->nrpn = ctl == 0x63;
                         break;
+                    case 0x06: case 0x26:  // Data Entry MSB, LSB
+                        rpn = &channel_rpn[channel];
+                        break;
                     }
                 }
             }
