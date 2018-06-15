@@ -19,6 +19,8 @@ struct player_context {
     int speed;
     bool quit;
     bool play;
+    bool looping;
+    bool loopbreak;
     unsigned current;
     unsigned next;
     unsigned total;
@@ -132,7 +134,9 @@ static void update_status_display(player_context &ctx)
     mvprintln(row++, 1, "TIME %02u:%02u / %02u:%02u", tm, ts, dm, ds);
     mvprintln(row++, 1, "SPEED %d%%", ctx.speed);
     attron(A_REVERSE);
-    mvprintln(row++, 1, "%s", ctx.play ? "PLAYING" : "PAUSED");
+    mvprintln(row, 1, "%s", ctx.play ? "PLAYING" : "PAUSED");
+    mvprintln(row, 10, "%s", ctx.looping ? "LOOPING" : "");
+    ++row;
     attroff(A_REVERSE);
     ++row;
     mvprintln(row++, 1, "FORMAT %u", info->format);
@@ -142,8 +146,10 @@ static void update_status_display(player_context &ctx)
               "[space] play/pause   [esc] quit"
               "   [pgup] previous file   [pgdn] next file");
     mvprintln(row++, 1,
-              "[home] rewind   [left] go -5s   [right] go +5s"
+              "[left] go -5s   [right] go +5s"
               "   [<] slower   [>] faster");
+    mvprintln(row++, 1,
+              "[home] rewind   [l] loop");
 
     refresh();
 }
@@ -191,6 +197,7 @@ static void on_stdin(struct ev_loop *loop, ev_io *w, int revents)
     case KEY_PPAGE:
         if (ctx.current > 0) {
             ctx.next = ctx.current - 1;
+            ctx.loopbreak = true;
             ev_break(loop, EVBREAK_ONE);
             update_status_display(ctx);
         }
@@ -199,6 +206,7 @@ static void on_stdin(struct ev_loop *loop, ev_io *w, int revents)
     case KEY_NPAGE:
         if (ctx.current < ctx.total - 1) {
             ctx.next = ctx.current + 1;
+            ctx.loopbreak = true;
             ev_break(loop, EVBREAK_ONE);
             update_status_display(ctx);
         }
@@ -219,6 +227,11 @@ static void on_stdin(struct ev_loop *loop, ev_io *w, int revents)
             fmidi_player_start(&plr);
             ctx.play = true;
         }
+        update_status_display(ctx);
+        break;
+
+    case 'l': case 'L':
+        ctx.looping = !ctx.looping;
         update_status_display(ctx);
         break;
 
@@ -285,6 +298,7 @@ int main(int argc, char *argv[])
 
     int speed = 100;
     bool play = false;
+    bool looping = false;
 
     for (unsigned i = 0; i < nfiles;) {
         const char *filename = files[i];
@@ -313,6 +327,8 @@ int main(int argc, char *argv[])
         ctx.speed = speed;
         ctx.quit = false;
         ctx.play = play;
+        ctx.looping = looping;
+        ctx.loopbreak = false;
         ctx.current = i;
         ctx.next = i + 1;
         ctx.total = nfiles;
@@ -335,9 +351,12 @@ int main(int argc, char *argv[])
         if (ctx.quit)
             break;
 
-        i = ctx.next;
+        if (!ctx.looping || ctx.loopbreak)
+            i = ctx.next;
+
         speed = ctx.speed;
         play = ctx.play;
+        looping = ctx.looping;
     }
 
     midi_reset(midiout);
