@@ -100,6 +100,9 @@ static bool fmidi_repr_meta(std::ostream &out, const uint8_t *data, uint32_t len
     case 0x07:
         fmt::print(out, "(meta/cue-point {})", qtext);
         return true;
+    case 0x09:
+        fmt::print(out, "(meta/device-name {})", qtext);
+        return true;
     case 0x20:
         if (len < 1) return false;
         fmt::print(out, "(meta/channel-prefix {})", data[0]);
