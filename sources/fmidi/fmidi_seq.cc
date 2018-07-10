@@ -34,7 +34,7 @@ static const double fmidi_convert_delta(
 
 fmidi_seq_t *fmidi_seq_new(const fmidi_smf_t *smf)
 {
-    auto seq = std::make_unique<fmidi_seq_t>();
+    std::unique_ptr<fmidi_seq_t> seq(new fmidi_seq_t);
     seq->smf = smf;
 
     const fmidi_smf_info_t *info = fmidi_smf_get_info(smf);

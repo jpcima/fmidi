@@ -323,7 +323,7 @@ const fmidi_event_t *fmidi_smf_track_next(
 static bool fmidi_smf_read_contents(fmidi_smf_t *smf, memstream &mb)
 {
     uint16_t ntracks = smf->info.track_count;
-    smf->track = std::make_unique<fmidi_raw_track[]>(ntracks);
+    smf->track.reset(new fmidi_raw_track[ntracks]);
 
     std::vector<uint8_t> evbuf;
     evbuf.reserve(8192);
@@ -454,7 +454,7 @@ fmidi_smf_t *fmidi_smf_mem_read(const uint8_t *data, size_t length)
     if ((ms = mb.skip(headerlen - 6)))
         RET_FAIL(nullptr, (fmidi_status)ms);
 
-    auto smf = std::make_unique<fmidi_smf_t>();
+    std::unique_ptr<fmidi_smf_t> smf(new fmidi_smf_t);
     smf->info.format = format;
     smf->info.track_count = ntracks;
     smf->info.delta_unit = deltaunit;
@@ -492,7 +492,7 @@ fmidi_smf_t *fmidi_smf_stream_read(FILE *stream)
     if (length > fmidi_file_size_limit)
         RET_FAIL(nullptr, fmidi_err_largefile);
 
-    auto buf = std::make_unique<uint8_t[]>(length);
+    std::unique_ptr<uint8_t[]> buf(new uint8_t[length]);
     if (!fread(buf.get(), length, 1, stream))
         RET_FAIL(nullptr, fmidi_err_input);
 

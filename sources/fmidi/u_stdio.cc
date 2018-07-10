@@ -36,7 +36,7 @@ std::streampos FILE_device::seek(boost::iostreams::stream_offset off, std::ios::
     off_t pos = ::ftello(stream);
     if (pos == -1)
         return -1;
-    return std::make_unsigned_t<off_t>(pos);
+    return std::make_unsigned<off_t>::type(pos);
 }
 
 bool FILE_device::flush()
