@@ -48,10 +48,9 @@ static bool fmidi_smf_write(const fmidi_smf_t *smf, Writer &writer)
 
         const fmidi_event_t *event;
         while ((event = fmidi_smf_track_next(smf, &iter))) {
-            write_vlq(event->delta, writer);
-
             switch (event->type) {
             case fmidi_event_meta:
+                write_vlq(event->delta, writer);
                 writer.put(0xff);
                 writer.put(event->data[0]);
                 write_vlq(event->datalen - 1, writer);
@@ -60,6 +59,7 @@ static bool fmidi_smf_write(const fmidi_smf_t *smf, Writer &writer)
                 break;
             case fmidi_event_message:
             {
+                write_vlq(event->delta, writer);
                 uint8_t status = event->data[0];
                 if (status == 0xf0) {
                     writer.put(0xf0);
@@ -76,6 +76,7 @@ static bool fmidi_smf_write(const fmidi_smf_t *smf, Writer &writer)
                 break;
             }
             case fmidi_event_escape:
+                write_vlq(event->delta, writer);
                 writer.put(0xf7);
                 write_vlq(event->datalen, writer);
                 writer.write(event->data, event->datalen);
