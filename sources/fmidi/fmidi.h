@@ -41,13 +41,21 @@ FMIDI_API const fmidi_smf_info_t *fmidi_smf_get_info(const fmidi_smf_t *smf);
 FMIDI_API double fmidi_smf_compute_duration(const fmidi_smf_t *smf);
 
 ////////////
+// OUTPUT //
+////////////
+
+FMIDI_API bool fmidi_smf_mem_write(const fmidi_smf_t *smf, const uint8_t *data, size_t length);
+FMIDI_API bool fmidi_smf_file_write(const fmidi_smf_t *smf, const char *filename);
+FMIDI_API bool fmidi_smf_stream_write(const fmidi_smf_t *smf, FILE *stream);
+
+////////////
 // EVENTS //
 ////////////
 
 typedef enum fmidi_event_type {
     fmidi_event_meta = 1,
     fmidi_event_message = 2,
-    fmidi_event_escape = 3,
+    fmidi_event_escape = 3
 } fmidi_event_type_t;
 
 typedef struct fmidi_event {
@@ -113,6 +121,7 @@ typedef enum fmidi_status {
     fmidi_err_eof,
     fmidi_err_input,
     fmidi_err_largefile,
+    fmidi_err_output
 } fmidi_status_t;
 
 FMIDI_API fmidi_status_t fmidi_errno();

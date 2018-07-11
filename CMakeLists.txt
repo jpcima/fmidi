@@ -76,7 +76,9 @@ target_compile_definitions(fmidi-fmt INTERFACE "FMT_HEADER_ONLY=1")
 set(fmidi_SOURCES
   sources/fmidi/u_memstream.cc
   sources/fmidi/u_stdio.cc
-  sources/fmidi/fmidi_file.cc
+  sources/fmidi/file/read_smf.cc
+  sources/fmidi/file/write_smf.cc
+  sources/fmidi/fmidi_internal.cc
   sources/fmidi/fmidi_seq.cc
   sources/fmidi/fmidi_util.cc)
 set(fmidi-player_SOURCES
@@ -170,6 +172,9 @@ add_executable(fmidi-seq programs/midi-seq.cc)
 target_link_libraries(fmidi-seq PRIVATE fmidi fmidi-fmt)
 install(TARGETS fmidi-seq
   RUNTIME DESTINATION "bin")
+
+add_executable(fmidi-test-write programs/midi-test-write.cc)
+target_link_libraries(fmidi-test-write PRIVATE fmidi fmidi-fmt)
 
 if(fmidi-play_BUILD)
   add_executable(fmidi-play programs/midi-play.cc)

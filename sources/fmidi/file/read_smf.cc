@@ -1,7 +1,7 @@
-#include "fmidi.h"
-#include "fmidi_internal.h"
-#include "u_memstream.h"
-#include "u_stdio.h"
+#include "fmidi/fmidi.h"
+#include "fmidi/fmidi_internal.h"
+#include "fmidi/u_memstream.h"
+#include "fmidi/u_stdio.h"
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <vector>
@@ -11,18 +11,6 @@
 #include <sys/stat.h>
 #if defined(_WIN32)
 # define fileno _fileno
-#endif
-
-static thread_local fmidi_error_info_t fmidi_last_error;
-
-#if defined(FMIDI_DEBUG)
-# define RET_FAIL(x, e) do {                                      \
-        fmidi_error_info_t &fmidi__err = fmidi_last_error;        \
-        fmidi__err.file = __FILE__; fmidi__err.line = __LINE__;   \
-        fmidi__err.code = (e); return (x); } while (0)
-#else
-# define RET_FAIL(x, e)                                         \
-    do { fmidi_last_error.code = (e); return (x); } while (0)
 #endif
 
 struct fmidi_raw_track {
@@ -518,26 +506,4 @@ void fmidi_event_describe(const fmidi_event_t *evt, FILE *stream)
 #else
     fmt::print(stream, "{}", *evt);
 #endif
-}
-
-fmidi_status_t fmidi_errno()
-{
-    return fmidi_last_error.code;
-}
-
-const fmidi_error_info_t *fmidi_errinfo()
-{
-    return &fmidi_last_error;
-}
-
-const char *fmidi_strerror(fmidi_status_t status)
-{
-    switch (status) {
-    case fmidi_ok: return "success";
-    case fmidi_err_format: return "invalid format";
-    case fmidi_err_eof: return "premature end of file";
-    case fmidi_err_input: return "input error";
-    case fmidi_err_largefile: return "file too large";
-    }
-    return nullptr;
 }
