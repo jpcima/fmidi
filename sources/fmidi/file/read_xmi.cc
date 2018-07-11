@@ -423,6 +423,8 @@ fmidi_smf_t *fmidi_xmi_stream_read(FILE *stream)
     struct stat st;
     size_t length;
 
+    rewind(stream);
+
     if (fstat(fileno(stream), &st) != 0)
         RET_FAIL(nullptr, fmidi_err_input);
 

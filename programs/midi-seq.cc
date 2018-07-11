@@ -3,7 +3,7 @@
 //    (See accompanying file LICENSE.md or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#include <fmidi/fmidi.h>
+#include "common.h"
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <memory>
@@ -14,15 +14,15 @@ int main(int argc, char *argv[])
     if (argc != 2)
         return 1;
 
-    fmidi_smf_u smf(fmidi_smf_file_read(argv[1]));
+    fmidi_smf_u smf(fmidi_auto_file_read(argv[1]));
     if (!smf) {
-        fmt::print(std::cerr, "%s\n", fmidi_strerror(fmidi_errno()));
+        print_error();
         return 1;
     }
 
     fmidi_seq_u seq(fmidi_seq_new(smf.get()));
     if (!seq) {
-        fmt::print(std::cerr, "%s\n", fmidi_strerror(fmidi_errno()));
+        print_error();
         return 1;
     }
 

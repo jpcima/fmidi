@@ -79,6 +79,7 @@ set(fmidi_SOURCES
   sources/fmidi/file/read_smf.cc
   sources/fmidi/file/write_smf.cc
   sources/fmidi/file/read_xmi.cc
+  sources/fmidi/file/identify.cc
   sources/fmidi/fmidi_internal.cc
   sources/fmidi/fmidi_seq.cc
   sources/fmidi/fmidi_util.cc)
@@ -174,14 +175,10 @@ target_link_libraries(fmidi-seq PRIVATE fmidi fmidi-fmt)
 install(TARGETS fmidi-seq
   RUNTIME DESTINATION "bin")
 
-add_executable(fmidi-test-write programs/midi-test-write.cc)
-target_link_libraries(fmidi-test-write PRIVATE fmidi fmidi-fmt)
-
-add_executable(fmidi-xmi-read programs/xmi-read.cc)
-target_link_libraries(fmidi-xmi-read PRIVATE fmidi fmidi-fmt)
-
-add_executable(fmidi-xmi-convert programs/xmi-convert.cc)
-target_link_libraries(fmidi-xmi-convert PRIVATE fmidi fmidi-fmt)
+add_executable(fmidi-convert programs/midi-convert.cc)
+target_link_libraries(fmidi-convert PRIVATE fmidi fmidi-fmt)
+install(TARGETS fmidi-convert
+  RUNTIME DESTINATION "bin")
 
 if(fmidi-play_BUILD)
   add_executable(fmidi-play programs/midi-play.cc)

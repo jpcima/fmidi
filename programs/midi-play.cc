@@ -308,7 +308,7 @@ int main(int argc, char *argv[])
     for (unsigned i = 0; i < nfiles;) {
         const char *filename = files[i];
 
-        fmidi_smf_u smf(fmidi_smf_file_read(filename));
+        fmidi_smf_u smf(fmidi_auto_file_read(filename));
         if (!smf) {
             // const char *msg = fmidi_strerror(fmidi_errno());
             ++i;

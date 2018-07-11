@@ -3,7 +3,7 @@
 //    (See accompanying file LICENSE.md or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#include <fmidi/fmidi.h>
+#include "common.h"
 #include <fmt/format.h>
 #if !defined(_WIN32)
 #include <unistd.h>
@@ -13,24 +13,13 @@
 #define isatty _isatty
 #endif
 
-void print_error()
-{
-    const fmidi_error_info_t *errinfo = fmidi_errinfo();
-    const char *msg = fmidi_strerror(errinfo->code);
-#if defined(FMIDI_DEBUG)
-    fmt::print(stderr, "{}:{}: {}\n", errinfo->file, errinfo->line, msg);
-#else
-    fmt::print(stderr, "{}\n", msg);
-#endif
-}
-
 int main(int argc, char *argv[])
 {
     if (argc != 2)
         return 1;
 
     const char *filename = argv[1];
-    fmidi_smf_u smf(fmidi_xmi_file_read(filename));
+    fmidi_smf_u smf(fmidi_auto_file_read(filename));
 
     if (!smf) {
         print_error();

@@ -58,6 +58,22 @@ FMIDI_API bool fmidi_smf_mem_write(const fmidi_smf_t *smf, const uint8_t *data, 
 FMIDI_API bool fmidi_smf_file_write(const fmidi_smf_t *smf, const char *filename);
 FMIDI_API bool fmidi_smf_stream_write(const fmidi_smf_t *smf, FILE *stream);
 
+////////////////////
+// IDENTIFICATION //
+////////////////////
+
+typedef enum fmidi_fileformat {
+    fmidi_fileformat_smf,
+    fmidi_fileformat_xmi,
+} fmidi_fileformat_t;
+
+FMIDI_API fmidi_fileformat_t fmidi_mem_identify(const uint8_t *data, size_t length);
+FMIDI_API fmidi_fileformat_t fmidi_stream_identify(FILE *stream);
+
+FMIDI_API fmidi_smf_t *fmidi_auto_mem_read(const uint8_t *data, size_t length);
+FMIDI_API fmidi_smf_t *fmidi_auto_file_read(const char *filename);
+FMIDI_API fmidi_smf_t *fmidi_auto_stream_read(FILE *stream);
+
 ////////////
 // EVENTS //
 ////////////
