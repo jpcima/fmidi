@@ -4,6 +4,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "fmidi/fmidi.h"
+#include "fmidi/fmidi_util.h"
 #include "fmidi/fmidi_internal.h"
 #include "fmidi/u_memstream.h"
 #include "fmidi/u_stdio.h"
@@ -18,16 +19,6 @@
 # define fileno _fileno
 #endif
 
-struct fmidi_raw_track {
-    std::unique_ptr<uint8_t[]> data;
-    uint32_t length;
-};
-
-struct fmidi_smf {
-    fmidi_smf_info_t info;
-    std::unique_ptr<fmidi_raw_track[]> track;
-};
-
 const fmidi_smf_info_t *fmidi_smf_get_info(const fmidi_smf_t *smf)
 {
     return &smf->info;
@@ -41,40 +32,6 @@ double fmidi_smf_compute_duration(const fmidi_smf_t *smf)
     while (fmidi_seq_next_event(seq.get(), &sqevt))
         duration = sqevt.time;
     return duration;
-}
-
-static uintptr_t fmidi_event_pad(uintptr_t size)
-{
-    uintptr_t nb = size % alignof(fmidi_event_t);
-    return nb ? (size + alignof(fmidi_event_t) - nb) : size;
-}
-
-static fmidi_event_t *fmidi_event_alloc(std::vector<uint8_t> &buf, uint32_t datalen)
-{
-    size_t pos = buf.size();
-    size_t evsize = fmidi_event_sizeof(datalen);
-    size_t padsize = fmidi_event_pad(evsize);
-    buf.resize(buf.size() + padsize);
-    fmidi_event_t *event = (fmidi_event_t *)&buf[pos];
-    return event;
-}
-
-static unsigned fmidi_message_sizeof(uint8_t id)
-{
-    if ((id >> 7) == 0) {
-        return 0;
-    }
-    else if ((id >> 4) != 0b1111) {
-        static const uint8_t sizetable[8] = {
-            3, 3, 3, 3, 2, 2, 3 };
-        return sizetable[(id >> 4) & 0b111];
-    }
-    else {
-        static const uint8_t sizetable[16] = {
-            0, 2, 3, 2, 1, 1, 1, 0,
-            1, 1, 1, 1, 1, 1, 1, 1 };
-        return sizetable[id & 0b1111];
-    }
 }
 
 static fmidi_event_t *fmidi_read_meta_event(
@@ -345,7 +302,7 @@ static bool fmidi_smf_read_contents(fmidi_smf_t *smf, memstream &mb)
             }
             RET_FAIL(false, fmidi_err_format);
         }
-        if ((ms = mb.readint(&tracklen, 4)))
+        if ((ms = mb.readintBE(&tracklen, 4)))
             RET_FAIL(false, (fmidi_status)ms);
 
         // check track length, broken in many files. disregard if invalid
@@ -435,10 +392,10 @@ fmidi_smf_t *fmidi_smf_mem_read(const uint8_t *data, size_t length)
     if (!filemagic)
         RET_FAIL(nullptr, fmidi_err_format);
 
-    if ((ms = mb.readint(&headerlen, 4)) ||
-        (ms = mb.readint(&format, 2)) ||
-        (ms = mb.readint(&ntracks, 2)) ||
-        (ms = mb.readint(&deltaunit, 2)))
+    if ((ms = mb.readintBE(&headerlen, 4)) ||
+        (ms = mb.readintBE(&format, 2)) ||
+        (ms = mb.readintBE(&ntracks, 2)) ||
+        (ms = mb.readintBE(&deltaunit, 2)))
         RET_FAIL(nullptr, (fmidi_status)ms);
 
     if (ntracks < 1 || headerlen < 6)

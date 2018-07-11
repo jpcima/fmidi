@@ -78,6 +78,7 @@ set(fmidi_SOURCES
   sources/fmidi/u_stdio.cc
   sources/fmidi/file/read_smf.cc
   sources/fmidi/file/write_smf.cc
+  sources/fmidi/file/read_xmi.cc
   sources/fmidi/fmidi_internal.cc
   sources/fmidi/fmidi_seq.cc
   sources/fmidi/fmidi_util.cc)
@@ -175,6 +176,12 @@ install(TARGETS fmidi-seq
 
 add_executable(fmidi-test-write programs/midi-test-write.cc)
 target_link_libraries(fmidi-test-write PRIVATE fmidi fmidi-fmt)
+
+add_executable(fmidi-xmi-read programs/xmi-read.cc)
+target_link_libraries(fmidi-xmi-read PRIVATE fmidi fmidi-fmt)
+
+add_executable(fmidi-xmi-convert programs/xmi-convert.cc)
+target_link_libraries(fmidi-xmi-convert PRIVATE fmidi fmidi-fmt)
 
 if(fmidi-play_BUILD)
   add_executable(fmidi-play programs/midi-play.cc)

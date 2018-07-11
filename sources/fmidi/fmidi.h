@@ -65,7 +65,9 @@ FMIDI_API bool fmidi_smf_stream_write(const fmidi_smf_t *smf, FILE *stream);
 typedef enum fmidi_event_type {
     fmidi_event_meta = 1,
     fmidi_event_message = 2,
-    fmidi_event_escape = 3
+    fmidi_event_escape = 3,
+    fmidi_event_xmi_timbre = 4,
+    fmidi_event_xmi_branch_point = 5
 } fmidi_event_type_t;
 
 typedef struct fmidi_event {
@@ -90,6 +92,14 @@ typedef struct fmidi_track_iter {
 FMIDI_API void fmidi_smf_track_begin(fmidi_track_iter_t *it, uint16_t track);
 FMIDI_API const fmidi_event_t *fmidi_smf_track_next(
     const fmidi_smf_t *smf, fmidi_track_iter_t *it);
+
+/////////////
+// FORMATS //
+/////////////
+
+FMIDI_API fmidi_smf_t *fmidi_xmi_mem_read(const uint8_t *data, size_t length);
+FMIDI_API fmidi_smf_t *fmidi_xmi_file_read(const char *filename);
+FMIDI_API fmidi_smf_t *fmidi_xmi_stream_read(FILE *stream);
 
 ///////////////
 // SEQUENCER //

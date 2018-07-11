@@ -66,7 +66,20 @@ memstream_status memstream::readbyte(unsigned *retp)
     return ms_ok;
 }
 
-memstream_status memstream::readint(uint32_t *retp, unsigned length)
+memstream_status memstream::readintLE(uint32_t *retp, unsigned length)
+{
+    const uint8_t *ptr = read(length);
+    if (!ptr)
+        return ms_err_eof;
+    uint32_t ret = 0;
+    for (unsigned i = length; i-- > 0;)
+        ret = (ret << 8) | ptr[i];
+    if (retp)
+        *retp = ret;
+    return ms_ok;
+}
+
+memstream_status memstream::readintBE(uint32_t *retp, unsigned length)
 {
     const uint8_t *ptr = read(length);
     if (!ptr)

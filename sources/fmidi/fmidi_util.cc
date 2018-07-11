@@ -3,7 +3,7 @@
 //    (See accompanying file LICENSE.md or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#include "fmidi.h"
+#include "fmidi_util.h"
 #include "fmidi_internal.h"
 #include "u_memstream.h"
 #include <fmt/format.h>
@@ -45,6 +45,35 @@ double fmidi_time_delta(double time, uint16_t unit, uint32_t tempo)
         unsigned dpqn = unit;  // delta units per 1/4 note
         double tpqn = 1e-6 * tempo;  // 1/4 note duration
         return time * dpqn / tpqn;
+    }
+}
+
+//------------------------------------------------------------------------------
+fmidi_event_t *fmidi_event_alloc(std::vector<uint8_t> &buf, uint32_t datalen)
+{
+    size_t pos = buf.size();
+    size_t evsize = fmidi_event_sizeof(datalen);
+    size_t padsize = fmidi_event_pad(evsize);
+    buf.resize(buf.size() + padsize);
+    fmidi_event_t *event = (fmidi_event_t *)&buf[pos];
+    return event;
+}
+
+unsigned fmidi_message_sizeof(uint8_t id)
+{
+    if ((id >> 7) == 0) {
+        return 0;
+    }
+    else if ((id >> 4) != 0b1111) {
+        static const uint8_t sizetable[8] = {
+            3, 3, 3, 3, 2, 2, 3 };
+        return sizetable[(id >> 4) & 0b111];
+    }
+    else {
+        static const uint8_t sizetable[16] = {
+            0, 2, 3, 2, 1, 1, 1, 0,
+            1, 1, 1, 1, 1, 1, 1, 1 };
+        return sizetable[id & 0b1111];
     }
 }
 
@@ -334,6 +363,14 @@ std::ostream &operator<<(std::ostream &out, const fmidi_event_t &evt)
     }
     case fmidi_event_escape: {
         fmt::print(out, "(raw {})", printfmt_bytes{data, len});
+        break;
+    }
+    case fmidi_event_xmi_timbre: {
+        fmt::print(out, "(xmi/timbre :patch {} :bank {})", evt.data[0], evt.data[1]);
+        break;
+    }
+    case fmidi_event_xmi_branch_point: {
+        fmt::print(out, "(xmi/branch-point {})", evt.data[0]);
         break;
     }
     }

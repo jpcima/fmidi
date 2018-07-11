@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
         return 1;
 
     const char *filename = argv[1];
-    fmidi_smf_u smf(fmidi_smf_file_read(filename));
+    fmidi_smf_u smf(fmidi_xmi_file_read(filename));
 
     if (!smf) {
         print_error();

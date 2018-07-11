@@ -81,6 +81,9 @@ static bool fmidi_smf_write(const fmidi_smf_t *smf, Writer &writer)
                 writer.write(event->data, event->datalen);
                 running_status = -1;
                 break;
+            case fmidi_event_xmi_timbre:
+            case fmidi_event_xmi_branch_point:
+                break;
             }
         }
 

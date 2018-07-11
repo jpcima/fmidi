@@ -32,7 +32,8 @@ public:
     memstream_status peekbyte(unsigned *retp);
     memstream_status readbyte(unsigned *retp);
 
-    memstream_status readint(uint32_t *retp, unsigned length);
+    memstream_status readintLE(uint32_t *retp, unsigned length);
+    memstream_status readintBE(uint32_t *retp, unsigned length);
     memstream_status readvlq(uint32_t *retp);
     memstream_status peekvlq(uint32_t *retp);
 
