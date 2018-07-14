@@ -110,21 +110,25 @@ static bool fmidi_xmi_read_events(
         uint32_t delta = 0;
         unsigned status = 0;
 
-        for (uint32_t i = 0; i < rbrn_count; ++i) {
-            if (rbrn[i].dest == mb.getpos()) {
-                fmidi_event_t *event = fmidi_event_alloc(evbuf, 1);
-                event->type = fmidi_event_xmi_branch_point;
-                event->delta = delta;
-                event->datalen = 1;
-                event->data[0] = rbrn[i].id;
-                delta = 0;
-            }
+        size_t branch = ~(size_t)0;
+        for (uint32_t i = 0; i < rbrn_count && branch == ~(size_t)0; ++i) {
+            if (rbrn[i].dest == mb.getpos())
+                branch = i;
         }
 
         while (!(status & 128)) {
             if ((ms = mb.readbyte(&status)))
                 RET_FAIL(false, (fmidi_status)ms);
             delta += (status & 128) ? 0 : status;
+        }
+
+        if (branch != ~(size_t)0) {
+            fmidi_event_t *event = fmidi_event_alloc(evbuf, 1);
+            event->type = fmidi_event_xmi_branch_point;
+            event->delta = delta;
+            event->datalen = 1;
+            event->data[0] = rbrn[branch].id;
+            delta = 0;
         }
 
         fmidi_xmi_emit_noteoffs(&delta, noteoffs, evbuf);
@@ -318,25 +322,6 @@ static bool fmidi_xmi_read_track(memstream &mb, fmidi_raw_track &track)
     return true;
 }
 
-void fmidi_xmi_update_unit(fmidi_smf_t *smf)
-{
-    const fmidi_event_t *evt;
-    fmidi_track_iter_t it;
-    fmidi_smf_track_begin(&it, 0);
-    bool found = false;
-    while (!found && (evt = fmidi_smf_track_next(smf, &it))) {
-        if (evt->type == fmidi_event_meta) {
-            uint8_t id = evt->data[0];
-            if (id == 0x51 && evt->datalen == 4) {  // set tempo
-                const uint8_t *d24 = &evt->data[1];
-                uint32_t tempo = (d24[0] << 16) | (d24[1] << 8) | d24[2];
-                smf->info.delta_unit = tempo * 120 / 1000000;
-                found = true;
-            }
-        }
-    }
-}
-
 fmidi_smf_t *fmidi_xmi_mem_read(const uint8_t *data, size_t length)
 {
     const uint8_t header[] = {
@@ -402,8 +387,6 @@ fmidi_smf_t *fmidi_xmi_mem_read(const uint8_t *data, size_t length)
                 RET_FAIL(nullptr, (fmidi_status)ms);
         }
     }
-
-    fmidi_xmi_update_unit(smf.get());
 
     return smf.release();
 }
