@@ -7,7 +7,7 @@ list(APPEND CMAKE_MODULE_PATH "${cmake_MODULE_DIR}")
 
 option(FMIDI_ENABLE_DEBUG "enable debugging features" OFF)
 option(FMIDI_PIC "enable position independent code" ON)
-option(FMIDI_STATIC "build as static library" OFF)
+option(FMIDI_STATIC "build as static library" ON)
 
 if(FMIDI_ENABLE_DEBUG)
   add_definitions("-DFMIDI_DEBUG=1")
