@@ -146,7 +146,13 @@ static bool fmidi_xmi_read_events(
 
             eot = type == 0x2F;
 
-            if (!eot) {
+            if (eot) {
+                // emit later
+            }
+            else if (type == 0x51) {
+                // don't emit tempo change
+            }
+            else {
                 fmidi_event_t *event = fmidi_event_alloc(evbuf, length + 1);
                 event->type = fmidi_event_meta;
                 event->delta = delta;
@@ -322,6 +328,28 @@ static bool fmidi_xmi_read_track(memstream &mb, fmidi_raw_track &track)
     return true;
 }
 
+uint32_t fmidi_xmi_update_unit(fmidi_smf_t *smf)
+{
+    uint32_t res = 1;
+    const fmidi_event_t *evt;
+    fmidi_track_iter_t it;
+    fmidi_smf_track_begin(&it, 0);
+    bool found = false;
+    while (!found && (evt = fmidi_smf_track_next(smf, &it))) {
+        if (evt->type == fmidi_event_meta) {
+            uint8_t id = evt->data[0];
+            if (id == 0x51 && evt->datalen == 4) {  // set tempo
+                const uint8_t *d24 = &evt->data[1];
+                uint32_t tempo = (d24[0] << 16) | (d24[1] << 8) | d24[2];
+                res = 3;
+                smf->info.delta_unit = tempo * res * 120 / 1000000;
+                found = true;
+            }
+        }
+    }
+    return res;
+}
+
 fmidi_smf_t *fmidi_xmi_mem_read(const uint8_t *data, size_t length)
 {
     const uint8_t header[] = {
@@ -385,6 +413,20 @@ fmidi_smf_t *fmidi_xmi_mem_read(const uint8_t *data, size_t length)
         if (mb.getpos() & 1) {
             if ((ms = mb.skip(1)))
                 RET_FAIL(nullptr, (fmidi_status)ms);
+        }
+    }
+
+    uint32_t res = fmidi_xmi_update_unit(smf.get());
+    if (res == 0)
+        return nullptr;
+
+    for (uint32_t i = 0; i < ntracks; ++i) {
+        fmidi_track_iter_t it;
+        fmidi_smf_track_begin(&it, i);
+        fmidi_event_t *event;
+        while ((event = const_cast<fmidi_event_t *>(
+                    fmidi_smf_track_next(smf.get(), &it)))) {
+            event->delta *= res;
         }
     }
 
