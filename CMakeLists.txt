@@ -66,10 +66,12 @@ check_c_source_compiles("#include <fts.h>
 int main() { return fts_close((FTS *)0); }" fmidi_HAVE_FTS)
 
 set(fmidi-grep_BUILD FALSE)
-if(fmidi_HAVE_FTS)
-  set(fmidi-grep_BUILD TRUE)
-else()
+if(NOT fmidi_HAVE_FTS)
   message(STATUS "fts is missing, NOT building program fmidi-grep.")
+elseif(NOT Boost_FOUND)
+  message(STATUS "Boost is missing, NOT building program fmidi-grep.")
+else()
+  set(fmidi-grep_BUILD TRUE)
 endif()
 
 ##############

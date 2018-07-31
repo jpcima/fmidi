@@ -9,9 +9,12 @@
 #include <sys/stat.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <boost/iostreams/filter/line.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
 #include <regex>
 #include <iostream>
 #include <string.h>
+namespace io = boost::iostreams;
 
 struct FTS_Deleter {
     void operator()(FTS *x) const noexcept
@@ -24,30 +27,43 @@ public:
     virtual bool match(const char *p, size_t n) const = 0;
 };
 
+class Matching_Filter : public io::basic_line_filter<char> {
+    typedef io::basic_line_filter<char> base_type;
+public:
+    typedef typename base_type::char_type char_type;
+    typedef typename base_type::category category;
+    typedef std::char_traits<char_type> traits_type;
+    typedef typename base_type::string_type string_type;
+
+    explicit Matching_Filter(const Pattern &pat, const char *file_path, bool &has_match)
+        : base_type(true),
+          pat_(pat), file_path_(file_path), has_match_(has_match) {}
+
+    string_type do_filter(const string_type &line) override
+    {
+        if (!pat_.match(line.data(), line.size()))
+            return std::string();
+        has_match_ = true;
+        return fmt::format("{}: {}\n", file_path_, line);
+    }
+
+private:
+    const Pattern &pat_;
+    const char *file_path_ = nullptr;
+    bool &has_match_;
+};
+
 static bool do_file(const char *path, const Pattern &pattern, bool &has_match)
 {
     fmidi_smf_u smf(fmidi_smf_file_read(path));
-
     if (!smf)
         return false;
 
-    unsigned ntracks = fmidi_smf_get_info(smf.get())->track_count;
+    io::filtering_ostream out;
+    out.push(Matching_Filter(pattern, path, has_match));
+    out.push(std::cout);
 
-    for (unsigned t = 0; t < ntracks; ++t) {
-        fmidi_track_iter_t it;
-        fmidi_smf_track_begin(&it, t);
-
-        size_t evt_num = 0;
-        for (const fmidi_event_t *evt;
-             (evt = fmidi_smf_track_next(smf.get(), &it)); ++evt_num) {
-            std::string text = fmt::format("{}", *evt);
-            if (pattern.match(text.data(), text.size())) {
-                fmt::print(std::cout, "{}: [T{} E{}] {}\n", path, t + 1, evt_num + 1, text);
-                has_match = true;
-            }
-        }
-    }
-
+    out << *smf;
     return true;
 }
 
