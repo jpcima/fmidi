@@ -280,6 +280,67 @@ static bool fmidi_repr_midi(std::ostream &out, const uint8_t *data, uint32_t len
     return false;
 }
 
+static bool fmidi_identify_sysex(const uint8_t *msg, size_t len, std::string &text)
+{
+    if (len < 4 || msg[0] != 0xf0 || msg[len - 1] != 0xf7)
+        return false;
+
+    unsigned manufacturer = msg[1];
+    unsigned deviceid = msg[2];
+
+    switch (manufacturer) {
+        case 0x7e:  // universal non-realtime
+            if (len >= 6) {
+                switch ((msg[3] << 8) | msg[4]) {
+                case 0x0901: text = "GM system on"; return true;
+                case 0x0902: text = "GM system off"; return true;
+                }
+            }
+            break;
+        case 0x7f:  // universal realtime
+            if (len >= 6) {
+                switch ((msg[3] << 8) | msg[4]) {
+                case 0x0401: text = "GM master volume"; return true;
+                case 0x0402: text = "GM master balance"; return true;
+                }
+            }
+            break;
+        case 0x41:  // Roland
+            if (len >= 9) {
+                unsigned model = msg[3];
+                unsigned mode = msg[4];
+                unsigned address = (msg[5] << 16) | (msg[6] << 8) | msg[7];
+                if (mode == 0x12) {  // send
+                    switch ((model << 24) | address) {
+                    case (0x42u << 24) | 0x00007fu: text = "GS system mode set"; return true;
+                    case (0x42u << 24) | 0x40007fu: text = "GS mode set"; return true;
+                    default: text = fmt::format("GS parameter #x{:06x}", address); return true;
+                    }
+                }
+            }
+            break;
+        case 0x43:  // Yamaha
+            if (len >= 5) {
+                unsigned model = msg[3];
+                switch((model << 8) | (deviceid & 0xf0))
+                {
+                case (0x4c << 8) | 0x10:  // XG
+                    if (len >= 8) {
+                        unsigned address = (msg[4] << 16) | (msg[5] << 8) | msg[6];
+                        switch (address) {
+                        case 0x00007e: text = "XG system on"; return true;
+                        default: text = fmt::format("XG parameter #x{:06x}", address); return true;
+                        }
+                        break;
+                    }
+                }
+            }
+            break;
+    }
+
+    return false;
+}
+
 std::ostream &operator<<(std::ostream &out, const fmidi_smf_t &smf)
 {
     const fmidi_smf_info_t *info = fmidi_smf_get_info(&smf);
@@ -302,6 +363,9 @@ std::ostream &operator<<(std::ostream &out, const fmidi_smf_t &smf)
     };
     RPN_Info channel_rpn[16];
 
+    std::string strbuf;
+    strbuf.reserve(256);
+
     for (unsigned i = 0, n = info->track_count; i < n; ++i) {
         fmidi_track_iter_t it;
         fmidi_smf_track_begin(&it, i);
@@ -311,20 +375,23 @@ std::ostream &operator<<(std::ostream &out, const fmidi_smf_t &smf)
         while (const fmidi_event_t *evt = fmidi_smf_track_next(&smf, &it)) {
             RPN_Info *rpn = nullptr;
 
+            const uint8_t *data = evt->data;
+            uint32_t datalen = evt->datalen;
+
             if (evt->type == fmidi_event_message) {
-                unsigned status = evt->data[0];
+                unsigned status = data[0];
                 unsigned channel = status & 0x0f;
                 // controllers
-                if (evt->datalen == 3 && (status & 0xf0) == 0xb0) {
-                    unsigned ctl = evt->data[1] & 0x7f;
+                if (datalen == 3 && (status & 0xf0) == 0xb0) {
+                    unsigned ctl = data[1] & 0x7f;
                     switch (ctl) {
                     case 0x62: case 0x64:  // (N)RPN LSB
                         rpn = &channel_rpn[channel];
-                        rpn->lsb = evt->data[2] & 0x7f, rpn->nrpn = ctl == 0x62;
+                        rpn->lsb = data[2] & 0x7f, rpn->nrpn = ctl == 0x62;
                         break;
                     case 0x63: case 0x65:  // (N)RPN MSB
                         rpn = &channel_rpn[channel];
-                        rpn->msb = evt->data[2] & 0x7f, rpn->nrpn = ctl == 0x63;
+                        rpn->msb = data[2] & 0x7f, rpn->nrpn = ctl == 0x63;
                         break;
                     case 0x06: case 0x26:  // Data Entry MSB, LSB
                         rpn = &channel_rpn[channel];
@@ -337,6 +404,8 @@ std::ostream &operator<<(std::ostream &out, const fmidi_smf_t &smf)
             if (rpn)
                 fmt::print(out, " #|{}RPN #x{:02x} #x{:02x}|#",
                            rpn->nrpn ? "N" : "", rpn->msb, rpn->lsb);
+            else if (fmidi_identify_sysex(data, datalen, strbuf))
+                fmt::print(out, " #|{}|#", strbuf);
             out.put(')');
         }
         fmt::print(out, ")");
