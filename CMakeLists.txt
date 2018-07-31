@@ -61,6 +61,17 @@ if(fmidi-player_BUILD)
   endif()
 endif()
 
+include(CheckCSourceCompiles)
+check_c_source_compiles("#include <fts.h>
+int main() { return fts_close((FTS *)0); }" fmidi_HAVE_FTS)
+
+set(fmidi-grep_BUILD FALSE)
+if(fmidi_HAVE_FTS)
+  set(fmidi-grep_BUILD TRUE)
+else()
+  message(STATUS "fts is missing, NOT building program fmidi-grep.")
+endif()
+
 ##############
 # THIRDPARTY #
 ##############
@@ -188,5 +199,12 @@ if(fmidi-play_BUILD)
     PRIVATE ${rtmidi_INCLUDE_DIRS} ${CURSES_INCLUDE_DIRS})
   link_directories(${rtmidi_LIBRARY_DIRS})
   install(TARGETS fmidi-play
+    RUNTIME DESTINATION "bin")
+endif()
+
+if(fmidi-grep_BUILD)
+  add_executable(fmidi-grep programs/midi-grep.cc)
+  target_link_libraries(fmidi-grep PRIVATE fmidi fmidi-fmt)
+  install(TARGETS fmidi-grep
     RUNTIME DESTINATION "bin")
 endif()
