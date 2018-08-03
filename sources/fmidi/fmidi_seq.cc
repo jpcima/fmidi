@@ -73,6 +73,8 @@ void fmidi_seq_rewind(fmidi_seq_t *seq)
     const fmidi_smf_t *smf = seq->smf;
     const fmidi_smf_info_t *info = fmidi_smf_get_info(smf);
     uint16_t ntracks = info->track_count;
+    bool independent_multi_track =
+        ntracks > 1 && seq->track[0].timing != seq->track[1].timing;
 
     for (unsigned i = 0; i < ntracks; ++i) {
         fmidi_seq_track_info &track = seq->track[i];
@@ -96,8 +98,11 @@ void fmidi_seq_rewind(fmidi_seq_t *seq)
         while ((evt = fmidi_smf_track_next(smf, &it)) &&
                evt->delta == 0 && evt->type == fmidi_event_meta) {
             uint8_t id = evt->data[0];
-            if (id == 0x54 && evt->datalen == 6)  // SMPTE offset
-                memcpy(startoffset.code, &evt->data[1], 5);
+            if (id == 0x54 && evt->datalen == 6) {  // SMPTE offset
+                // disregard SMPTE offset for format 1 MIDI and similar
+                if (independent_multi_track)
+                    memcpy(startoffset.code, &evt->data[1], 5);
+            }
             if (id == 0x51 && evt->datalen == 4) {  // set tempo
                 const uint8_t *d24 = &evt->data[1];
                 timing->tempo = (d24[0] << 16) | (d24[1] << 8) | d24[2];
