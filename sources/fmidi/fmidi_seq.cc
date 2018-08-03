@@ -121,6 +121,12 @@ static fmidi_seq_pending_event *fmidi_seq_track_current_event(
     if (!evt)
         return nullptr;
 
+    if (evt->type == fmidi_event_meta) {
+        uint8_t tag = evt->data[0];
+        if (tag == 0x2f || tag == 0x3f)  // end of track
+            return nullptr;  // stop now even if the final event has delta
+    }
+
     pending = &track.next;
     pending->event = evt;
     pending->delta = evt->delta;
