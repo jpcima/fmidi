@@ -34,7 +34,8 @@ endif()
 # FEATURE DETECTION #
 #####################
 
-find_package(Boost)
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost OPTIONAL_COMPONENTS filesystem system)
 if(Boost_FOUND)
   add_definitions("-DFMIDI_USE_BOOST")
 endif()
@@ -56,6 +57,8 @@ if(fmidi-player_BUILD)
     message(STATUS "rtmidi is missing, NOT building program fmidi-play.")
   elseif (NOT CURSES_FOUND)
     message(STATUS "curses is missing, NOT building program fmidi-play.")
+  elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND NOT (Boost_FOUND AND Boost_FILESYSTEM_LIBRARY AND Boost_SYSTEM_LIBRARY))
+    message(STATUS "Boost is missing, NOT building program fmidi-play.")
   else()
     set(fmidi-play_BUILD TRUE)
   endif()
@@ -194,7 +197,7 @@ install(TARGETS fmidi-convert
   RUNTIME DESTINATION "bin")
 
 if(fmidi-play_BUILD)
-  add_executable(fmidi-play programs/midi-play.cc)
+  add_executable(fmidi-play programs/midi-play.cc programs/playlist.cc)
   target_link_libraries(fmidi-play
     PRIVATE fmidi-player ${rtmidi_LIBRARIES} ${CURSES_LIBRARIES})
   target_include_directories(fmidi-play
@@ -202,6 +205,10 @@ if(fmidi-play_BUILD)
   link_directories(${rtmidi_LIBRARY_DIRS})
   install(TARGETS fmidi-play
     RUNTIME DESTINATION "bin")
+  if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    target_compile_definitions(fmidi-play PRIVATE "FMIDI_PLAY_USE_BOOST_FILESYSTEM=")
+    target_link_libraries(fmidi-play PRIVATE "${Boost_FILESYSTEM_LIBRARY}" "${Boost_SYSTEM_LIBRARY}")
+  endif()
 endif()
 
 if(fmidi-grep_BUILD)

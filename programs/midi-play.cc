@@ -3,10 +3,12 @@
 //    (See accompanying file LICENSE.md or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#include "playlist.h"
 #include <fmidi/fmidi.h>
 #include <RtMidi.h>
 #include <ev.h>
 #include <curses.h>
+#include <getopt.h>
 #include <thread>
 #include <chrono>
 #include <vector>
@@ -25,10 +27,8 @@ struct player_context {
     bool quit;
     bool play;
     bool looping;
-    bool loopbreak;
-    unsigned current;
-    unsigned next;
-    unsigned total;
+    bool interrupt;
+    Play_List *playlist = nullptr;
 };
 
 //
@@ -200,20 +200,16 @@ static void on_stdin(struct ev_loop *loop, ev_io *w, int revents)
         break;
 
     case KEY_PPAGE:
-        if (ctx.current > 0) {
-            ctx.next = ctx.current - 1;
-            ctx.loopbreak = true;
+        if (ctx.playlist->go_previous()) {
+            ctx.interrupt = true;
             ev_break(loop, EVBREAK_ONE);
-            update_status_display(ctx);
         }
         break;
 
     case KEY_NPAGE:
-        if (ctx.current < ctx.total - 1) {
-            ctx.next = ctx.current + 1;
-            ctx.loopbreak = true;
+        if (ctx.playlist->go_next()) {
+            ctx.interrupt = true;
             ev_break(loop, EVBREAK_ONE);
-            update_status_display(ctx);
         }
         break;
 
@@ -275,8 +271,31 @@ static void on_stdin(struct ev_loop *loop, ev_io *w, int revents)
 //
 int main(int argc, char *argv[])
 {
-    if (argc < 2)
-        return 1;
+    std::unique_ptr<Play_List> pl;
+    bool random_play = false;
+
+    for (int c; (c = getopt(argc, argv, "r")) != -1; ) {
+        switch (c) {
+        case 'r':
+            random_play = true;
+            break;
+        default:
+            return 1;
+        }
+    }
+
+    if (!random_play) {
+        Linear_Play_List *lpl = new Linear_Play_List;
+        pl.reset(lpl);
+        for (int i = optind; i < argc; ++i)
+            lpl->add_file(argv[i]);
+    }
+    else {
+        Random_Play_List *rpl = new Random_Play_List;
+        pl.reset(rpl);
+        for (int i = optind; i < argc; ++i)
+            rpl->add_file(argv[i]);
+    }
 
     RtMidiOut midiout(RtMidi::UNSPECIFIED, "fmidi");
     midiout.openVirtualPort("MIDI out");
@@ -298,33 +317,31 @@ int main(int argc, char *argv[])
     ev_timer_init(&update_timer, &on_update_tick, 0.0, 0.5);
     ev_timer_start(loop, &update_timer);
 
-    char **files = argv + 1;
-    unsigned nfiles = (unsigned)argc - 1;
-
     int speed = 100;
     bool play = false;
     bool looping = false;
 
-    for (unsigned i = 0; i < nfiles;) {
-        const char *filename = files[i];
+    pl->start();
+    while (!pl->at_end()) {
+        std::string filename = pl->current();
 
-        fmidi_smf_u smf(fmidi_auto_file_read(filename));
+        fmidi_smf_u smf(fmidi_auto_file_read(filename.c_str()));
         if (!smf) {
             // const char *msg = fmidi_strerror(fmidi_errno());
-            ++i;
+            pl->go_next();
             continue;
         }
 
         fmidi_player_u plr(fmidi_player_new(smf.get(), loop));
         if (!plr) {
             // const char *msg = fmidi_strerror(fmidi_errno());
-            ++i;
+            pl->go_next();
             continue;
         }
 
         player_context ctx;
         ctx.loop = loop;
-        ctx.filename = filename;
+        ctx.filename = filename.c_str();
         ctx.smf = smf.get();
         ctx.plr = plr.get();
         ctx.midiout = &midiout;
@@ -333,10 +350,8 @@ int main(int argc, char *argv[])
         ctx.quit = false;
         ctx.play = play;
         ctx.looping = looping;
-        ctx.loopbreak = false;
-        ctx.current = i;
-        ctx.next = i + 1;
-        ctx.total = nfiles;
+        ctx.interrupt = false;
+        ctx.playlist = pl.get();
 
         stdin_watcher.data = &ctx;
         update_timer.data = &ctx;
@@ -344,7 +359,7 @@ int main(int argc, char *argv[])
         fmidi_player_finish_callback(plr.get(), &on_player_finish, &ctx);
 
         midi_reset(midiout);
-        sc55_text_insert(midiout, filename);
+        sc55_text_insert(midiout, filename.c_str());
 
         fmidi_player_set_speed(plr.get(), ctx.speed * 1e-2);
         if (play)
@@ -356,8 +371,8 @@ int main(int argc, char *argv[])
         if (ctx.quit)
             break;
 
-        if (!ctx.looping || ctx.loopbreak)
-            i = ctx.next;
+        if (!ctx.looping && !ctx.interrupt)
+            pl->go_next();
 
         speed = ctx.speed;
         play = ctx.play;
