@@ -273,11 +273,15 @@ int main(int argc, char *argv[])
 {
     std::unique_ptr<Play_List> pl;
     bool random_play = false;
+    const char *client_name = "fmidi";
 
-    for (int c; (c = getopt(argc, argv, "r")) != -1; ) {
+    for (int c; (c = getopt(argc, argv, "rn:")) != -1; ) {
         switch (c) {
         case 'r':
             random_play = true;
+            break;
+        case 'n':
+            client_name = optarg;
             break;
         default:
             return 1;
@@ -297,7 +301,7 @@ int main(int argc, char *argv[])
             rpl->add_file(argv[i]);
     }
 
-    RtMidiOut midiout(RtMidi::UNSPECIFIED, "fmidi");
+    RtMidiOut midiout(RtMidi::UNSPECIFIED, client_name);
     midiout.openVirtualPort("MIDI out");
 
     initscr();
