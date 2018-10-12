@@ -4,6 +4,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "playlist.h"
+#include "fmidi/u_stdio.h"
 #include <fmidi/fmidi.h>
 #include <RtMidi.h>
 #include <ev.h>
@@ -14,6 +15,32 @@
 #include <vector>
 #include <memory>
 namespace stc = std::chrono;
+
+static void vmessage(FILE *log, char level, const char *fmt, va_list ap)
+{
+    if (!log)
+        return;
+
+    std::time_t time = std::time(nullptr);
+    char timebuf[32];
+    if (time == (time_t)-1 || !ctime_r(&time, timebuf))
+        throw std::runtime_error("time");
+    if (char *p = strchr(timebuf, '\n'))
+        *p = '\0';
+
+    fprintf(log, "%s [%c] ", timebuf, level);
+    vfprintf(log, fmt, ap);
+    fputc('\n', log);
+    fflush(log);
+}
+
+static void message(FILE *log, char level, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vmessage(log, level, fmt, ap);
+    va_end(ap);
+}
 
 //
 struct player_context {
@@ -275,8 +302,10 @@ int main(int argc, char *argv[])
     bool random_play = false;
     const char *client_name = "fmidi";
     RtMidi::Api midi_api = RtMidi::UNSPECIFIED;
+    FILE *playback_log = nullptr;
+    unique_FILE playback_logfile;
 
-    for (int c; (c = getopt(argc, argv, "rn:M:")) != -1; ) {
+    for (int c; (c = getopt(argc, argv, "rn:M:L:")) != -1; ) {
         switch (c) {
         case 'r':
             random_play = true;
@@ -289,6 +318,14 @@ int main(int argc, char *argv[])
                 midi_api = RtMidi::LINUX_ALSA;
             else if (!strcmp(optarg, "jack"))
                 midi_api = RtMidi::UNIX_JACK;
+            break;
+        case 'L':
+            playback_log = fopen(optarg, "a");
+            if (!playback_log) {
+                fprintf(stderr, "Cannot open the log file for writing.\n");
+                return 1;
+            }
+            playback_logfile.reset(playback_log);
             break;
         default:
             return 1;
@@ -338,17 +375,21 @@ int main(int argc, char *argv[])
 
         fmidi_smf_u smf(fmidi_auto_file_read(filename.c_str()));
         if (!smf) {
-            // const char *msg = fmidi_strerror(fmidi_errno());
+            const char *msg = fmidi_strerror(fmidi_errno());
+            message(playback_log, 'E', "%s", msg);
             pl->go_next();
             continue;
         }
 
         fmidi_player_u plr(fmidi_player_new(smf.get(), loop));
         if (!plr) {
-            // const char *msg = fmidi_strerror(fmidi_errno());
+            const char *msg = fmidi_strerror(fmidi_errno());
+            message(playback_log, 'E', "%s", msg);
             pl->go_next();
             continue;
         }
+
+        message(playback_log, 'I', "play %s", filename.c_str());
 
         player_context ctx;
         ctx.loop = loop;
