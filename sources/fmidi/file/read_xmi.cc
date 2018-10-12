@@ -8,6 +8,7 @@
 #include "fmidi/fmidi_internal.h"
 #include "fmidi/u_memstream.h"
 #include "fmidi/u_stdio.h"
+#include <algorithm>
 #include <string.h>
 #include <sys/stat.h>
 #if defined(_WIN32)
@@ -357,9 +358,9 @@ fmidi_smf_t *fmidi_xmi_mem_read(const uint8_t *data, size_t length)
         'X', 'D', 'I', 'R', 'I', 'N', 'F', 'O', 0, 0, 0, 2
     };
 
-    const uint8_t *start = (const uint8_t *)memmem(
-        data, length, header, sizeof(header));
-    if (!start)
+    const uint8_t *start = std::search(
+        data, data + length, header, header + sizeof(header));
+    if (start == data + length)
         RET_FAIL(nullptr, fmidi_err_format);
 
     length = length - (start - data);
