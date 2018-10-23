@@ -41,7 +41,8 @@ private:
     const uint8_t *base_ = nullptr;
     size_t length_ = 0;
     size_t offset_ = 0;
-    std::tuple<memstream_status, uint32_t, unsigned> doreadvlq();
+    typedef std::tuple<memstream_status, uint32_t, unsigned> vlq_result;
+    vlq_result doreadvlq();
 };
 
 //------------------------------------------------------------------------------

@@ -115,19 +115,19 @@ memstream_status memstream::peekvlq(uint32_t *retp)
     return ret;
 }
 
-std::tuple<memstream_status, uint32_t, unsigned> memstream::doreadvlq()
+memstream::vlq_result memstream::doreadvlq()
 {
     uint32_t ret = 0;
     unsigned length;
     bool cont = true;
     for (length = 0; cont && length < 4; ++length) {
         if (offset_ + length >= length_)
-            return {ms_err_eof, 0, 0};
+            return vlq_result{ms_err_eof, 0, 0};
         uint8_t byte = base_[offset_ + length];
         ret = (ret << 7) | (byte & ((1u << 7) - 1));
         cont = byte & (1u << 7);
     }
     if (cont)
-        return {ms_err_format, 0, 0};
-    return {ms_ok, ret, length};
+        return vlq_result{ms_err_format, 0, 0};
+    return vlq_result{ms_ok, ret, length};
 }
