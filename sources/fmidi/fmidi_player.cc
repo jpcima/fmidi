@@ -4,7 +4,6 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "fmidi.h"
-#include <ev.h>
 #include <memory>
 #include <algorithm>
 #include <assert.h>
@@ -14,8 +13,6 @@ struct fmidi_player_context {
     fmidi_seq_u seq;
     double timepos;
     double speed;
-    ev_tstamp prev_tick;
-    bool have_tick;
     bool have_event;
     fmidi_seq_event_t sqevt;
     void (*cbfn)(const fmidi_event_t *, void *);
@@ -25,16 +22,32 @@ struct fmidi_player_context {
 };
 
 struct fmidi_player {
-    struct ev_loop *loop;
-    ev_timer timer;
     bool running;
     fmidi_player_context ctx;
 };
 
-static void fmidi_player_tick(struct ev_loop *loop, ev_timer *timer, int)
+fmidi_player_t *fmidi_player_new(fmidi_smf_t *smf)
 {
-    fmidi_player_context &ctx = *(fmidi_player_context *)timer->data;
-    fmidi_player_t &plr = *ctx.plr;
+    fmidi_player_u plr(new fmidi_player_t);
+    plr->running = false;
+
+    fmidi_player_context &ctx = plr->ctx;
+    ctx.plr = plr.get();
+    ctx.seq.reset(fmidi_seq_new(smf));
+    ctx.timepos = 0;
+    ctx.speed = 1;
+    ctx.have_event = false;
+    ctx.cbfn = nullptr;
+    ctx.cbdata = nullptr;
+    ctx.finifn = nullptr;
+    ctx.finidata = nullptr;
+
+    return plr.release();
+}
+
+void fmidi_player_tick(fmidi_player_t *plr, double delta)
+{
+    fmidi_player_context &ctx = plr->ctx;
     fmidi_seq_t &seq = *ctx.seq;
     void (*cbfn)(const fmidi_event_t *, void *) = ctx.cbfn;
     void *cbdata = ctx.cbdata;
@@ -42,10 +55,8 @@ static void fmidi_player_tick(struct ev_loop *loop, ev_timer *timer, int)
     double timepos = ctx.timepos;
     bool have_event = ctx.have_event;
     fmidi_seq_event_t &sqevt = ctx.sqevt;
-    ev_tstamp now = ev_now(loop);
 
-    if (ctx.have_tick)
-        timepos += ctx.speed * (now - ctx.prev_tick);
+    timepos += ctx.speed * delta;
 
     bool more = have_event || fmidi_seq_next_event(&seq, &sqevt);
     if (more) {
@@ -59,77 +70,27 @@ static void fmidi_player_tick(struct ev_loop *loop, ev_timer *timer, int)
     }
 
     ctx.have_event = have_event;
-    ctx.have_tick = true;
-    ctx.prev_tick = now;
     ctx.timepos = timepos;
 
     if (!more) {
-        ev_timer_stop(loop, timer);
-        plr.running = false;
+        plr->running = false;
         if (ctx.finifn)
             ctx.finifn(ctx.finidata);
     }
 }
 
-fmidi_player_t *fmidi_player_new(fmidi_smf_t *smf, struct ev_loop *loop)
-{
-    fmidi_player_u plr(new fmidi_player_t);
-    plr->loop = loop;
-
-    fmidi_player_context &ctx = plr->ctx;
-    ctx.plr = plr.get();
-    ctx.seq.reset(fmidi_seq_new(smf));
-    ctx.timepos = 0;
-    ctx.speed = 1;
-    ctx.have_tick = false;
-    ctx.have_event = false;
-    ctx.cbfn = nullptr;
-    ctx.cbdata = nullptr;
-    ctx.finifn = nullptr;
-    ctx.finidata = nullptr;
-
-    constexpr double seq_interval = 1e-3;
-    ev_timer_init(&plr->timer, &fmidi_player_tick, 0.0, seq_interval);
-    plr->timer.data = &ctx;
-    plr->running = false;
-
-    return plr.release();
-}
-
 void fmidi_player_free(fmidi_player_t *plr)
 {
-    if (plr->running) {
-        struct ev_loop *loop = plr->loop;
-        ev_timer_stop(loop, &plr->timer);
-    }
     delete plr;
 }
 
 void fmidi_player_start(fmidi_player_t *plr)
 {
-    if (plr->running)
-        return;
-
-    fmidi_player_context &ctx = plr->ctx;
-    ctx.have_tick = false;
-
-    struct ev_loop *loop = plr->loop;
-    ev_timer_start(loop, &plr->timer);
-
     plr->running = true;
 }
 
 void fmidi_player_stop(fmidi_player_t *plr)
 {
-    if (!plr->running)
-        return;
-
-    fmidi_player_context &ctx = plr->ctx;
-    ctx.have_tick = false;
-
-    struct ev_loop *loop = plr->loop;
-    ev_timer_stop(loop, &plr->timer);
-
     plr->running = false;
 }
 
@@ -138,7 +99,6 @@ void fmidi_player_rewind(fmidi_player_t *plr)
     fmidi_player_context &ctx = plr->ctx;
     fmidi_seq_rewind(ctx.seq.get());
     ctx.timepos = 0;
-    ctx.have_tick = false;
     ctx.have_event = false;
 }
 
@@ -231,17 +191,6 @@ double fmidi_player_current_speed(const fmidi_player_t *plr)
 void fmidi_player_set_speed(fmidi_player_t *plr, double speed)
 {
     plr->ctx.speed = speed;
-}
-
-double fmidi_player_current_clock_frequency(const fmidi_player_t *plr)
-{
-    return 1.0 / plr->timer.repeat;
-}
-
-void fmidi_player_set_clock_frequency(fmidi_player_t *plr, double freq)
-{
-    assert(freq > 0);
-    plr->timer.repeat = 1.0 / freq;
 }
 
 void fmidi_player_event_callback(

@@ -177,8 +177,8 @@ FMIDI_API const fmidi_error_info_t *fmidi_errinfo();
 ////////////
 
 typedef struct fmidi_player fmidi_player_t;
-struct ev_loop;
-FMIDI_API fmidi_player_t *fmidi_player_new(fmidi_smf_t *smf, struct ev_loop *loop);
+FMIDI_API fmidi_player_t *fmidi_player_new(fmidi_smf_t *smf);
+FMIDI_API void fmidi_player_tick(fmidi_player_t *seq, double delta);
 FMIDI_API void fmidi_player_free(fmidi_player_t *seq);
 FMIDI_API void fmidi_player_start(fmidi_player_t *seq);
 FMIDI_API void fmidi_player_stop(fmidi_player_t *seq);
@@ -188,8 +188,6 @@ FMIDI_API double fmidi_player_current_time(const fmidi_player_t *seq);
 FMIDI_API void fmidi_player_goto_time(fmidi_player_t *seq, double time);
 FMIDI_API double fmidi_player_current_speed(const fmidi_player_t *seq);
 FMIDI_API void fmidi_player_set_speed(fmidi_player_t *seq, double speed);
-FMIDI_API double fmidi_player_current_clock_frequency(const fmidi_player_t *seq);
-FMIDI_API void fmidi_player_set_clock_frequency(fmidi_player_t *seq, double freq);
 FMIDI_API void fmidi_player_event_callback(
     fmidi_player_t *seq, void (*cbfn)(const fmidi_event_t *, void *), void *cbdata);
 FMIDI_API void fmidi_player_finish_callback(

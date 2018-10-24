@@ -45,6 +45,9 @@ static void message(FILE *log, char level, const char *fmt, ...)
 //
 struct player_context {
     struct ev_loop *loop;
+    ev_timer *midi_timer;
+    bool have_midi_tick;
+    ev_tstamp last_midi_tick;
     const char *filename;
     fmidi_smf_t *smf;
     fmidi_player_t *plr;
@@ -195,6 +198,22 @@ static void on_update_tick(struct ev_loop *loop, ev_timer *timer, int)
 }
 
 //
+static void on_midi_tick(struct ev_loop *loop, ev_timer *timer, int)
+{
+    player_context &ctx = *(player_context *)timer->data;
+    fmidi_player_t &plr = *ctx.plr;
+
+    ev_tstamp now = ev_now(loop);
+    if (ctx.have_midi_tick) {
+        double delta = now - ctx.last_midi_tick;
+        fmidi_player_tick(&plr, delta);
+    }
+
+    ctx.have_midi_tick = true;
+    ctx.last_midi_tick = now;
+}
+
+//
 static void on_player_event(const fmidi_event_t *evt, void *cbdata)
 {
     player_context &ctx = *(player_context *)cbdata;
@@ -248,11 +267,15 @@ static void on_stdin(struct ev_loop *loop, ev_io *w, int revents)
 
     case ' ':
         if (fmidi_player_running(&plr)) {
+            ev_timer_stop(loop, ctx.midi_timer);
             fmidi_player_stop(&plr);
             ctx.play = false;
             midi_sound_off(*ctx.midiout);
         } else {
             fmidi_player_start(&plr);
+            ctx.have_midi_tick = false;
+            ctx.last_midi_tick = 0;
+            ev_timer_start(loop, ctx.midi_timer);
             ctx.play = true;
         }
         update_status_display(ctx);
@@ -365,6 +388,9 @@ int main(int argc, char *argv[])
     ev_timer_init(&update_timer, &on_update_tick, 0.0, 0.5);
     ev_timer_start(loop, &update_timer);
 
+    ev_timer midi_timer;
+    ev_timer_init(&midi_timer, &on_midi_tick, 0.0, 1e-3);
+
     int speed = 100;
     bool play = false;
     bool looping = false;
@@ -381,7 +407,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        fmidi_player_u plr(fmidi_player_new(smf.get(), loop));
+        fmidi_player_u plr(fmidi_player_new(smf.get()));
         if (!plr) {
             const char *msg = fmidi_strerror(fmidi_errno());
             message(playback_log, 'E', "%s", msg);
@@ -393,6 +419,7 @@ int main(int argc, char *argv[])
 
         player_context ctx;
         ctx.loop = loop;
+        ctx.midi_timer = &midi_timer;
         ctx.filename = filename.c_str();
         ctx.smf = smf.get();
         ctx.plr = plr.get();
@@ -407,6 +434,7 @@ int main(int argc, char *argv[])
 
         stdin_watcher.data = &ctx;
         update_timer.data = &ctx;
+        midi_timer.data = &ctx;
         fmidi_player_event_callback(plr.get(), &on_player_event, &ctx);
         fmidi_player_finish_callback(plr.get(), &on_player_finish, &ctx);
 
@@ -414,11 +442,18 @@ int main(int argc, char *argv[])
         sc55_text_insert(midiout, filename.c_str());
 
         fmidi_player_set_speed(plr.get(), ctx.speed * 1e-2);
-        if (play)
+        if (play) {
             fmidi_player_start(plr.get());
+            ctx.have_midi_tick = false;
+            ctx.last_midi_tick = 0;
+            ev_timer_start(loop, &midi_timer);
+        }
 
         update_status_display(ctx);
         ev_run(loop, 0);
+
+        ev_timer_stop(loop, &midi_timer);
+        fmidi_player_stop(plr.get());
 
         if (ctx.quit)
             break;
