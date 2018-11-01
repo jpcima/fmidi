@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.3)
 
 project(fmidi VERSION 0.1 LANGUAGES C CXX)
 
