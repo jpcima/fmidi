@@ -8,6 +8,7 @@
 #include "u_memstream.h"
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <string>
 
 double fmidi_smpte_time(const fmidi_smpte *smpte)
 {
