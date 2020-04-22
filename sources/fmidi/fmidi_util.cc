@@ -94,7 +94,8 @@ const std::error_category &fmidi_category() {
 };
 
 //------------------------------------------------------------------------------
-static bool fmidi_repr_meta(std::ostream &out, const uint8_t *data, uint32_t len)
+template <class OutputStreamRef>
+static bool fmidi_repr_meta(OutputStreamRef out, const uint8_t *data, uint32_t len)
 {
     if (len <= 0)
         return false;
@@ -185,7 +186,8 @@ static bool fmidi_repr_meta(std::ostream &out, const uint8_t *data, uint32_t len
     return false;
 }
 
-static bool fmidi_repr_midi(std::ostream &out, const uint8_t *data, uint32_t len)
+template <class OutputStreamRef>
+static bool fmidi_repr_midi(OutputStreamRef out, const uint8_t *data, uint32_t len)
 {
     if (len <= 0)
         return false;
@@ -342,7 +344,8 @@ static bool fmidi_identify_sysex(const uint8_t *msg, size_t len, std::string &te
     return false;
 }
 
-std::ostream &operator<<(std::ostream &out, const fmidi_smf_t &smf)
+template <class OutputStreamRef>
+static void fmidi_repr_smf(OutputStreamRef out, const fmidi_smf_t &smf)
 {
     const fmidi_smf_info_t *info = fmidi_smf_get_info(&smf);
     fmt::print(out, "(midi-file");
@@ -407,27 +410,38 @@ std::ostream &operator<<(std::ostream &out, const fmidi_smf_t &smf)
                            rpn->nrpn ? "N" : "", rpn->msb, rpn->lsb);
             else if (fmidi_identify_sysex(data, datalen, strbuf))
                 fmt::print(out, " #|{}|#", strbuf);
-            out.put(')');
+            fmt::print(out, ")");
         }
         fmt::print(out, ")");
     }
     fmt::print(out, "))\n");
+}
+
+std::ostream &operator<<(std::ostream &out, const fmidi_smf_t &smf)
+{
+    fmidi_repr_smf<std::ostream &>(out, smf);
     return out;
 }
 
-std::ostream &operator<<(std::ostream &out, const fmidi_event_t &evt)
+void fmidi_smf_describe(const fmidi_smf_t *smf, FILE *stream)
+{
+    fmidi_repr_smf<FILE *>(stream, *smf);
+}
+
+template <class OutputStreamRef>
+static void fmidi_repr_event(OutputStreamRef out, const fmidi_event_t &evt)
 {
     const uint8_t *data = evt.data;
     uint32_t len = evt.datalen;
 
     switch (evt.type) {
     case fmidi_event_meta: {
-        if (!fmidi_repr_meta(out, data, len))
+        if (!fmidi_repr_meta<OutputStreamRef>(out, data, len))
             fmt::print(out, "(meta/unknown)");
         break;
     }
     case fmidi_event_message: {
-        if (!fmidi_repr_midi(out, data, len))
+        if (!fmidi_repr_midi<OutputStreamRef>(out, data, len))
             fmt::print(out, "(unknown)");
         break;
     }
@@ -444,8 +458,17 @@ std::ostream &operator<<(std::ostream &out, const fmidi_event_t &evt)
         break;
     }
     }
+}
 
+std::ostream &operator<<(std::ostream &out, const fmidi_event_t &evt)
+{
+    fmidi_repr_event<std::ostream &>(out, evt);
     return out;
+}
+
+void fmidi_event_describe(const fmidi_event_t *evt, FILE *stream)
+{
+    fmidi_repr_event<FILE *>(stream, *evt);
 }
 
 //------------------------------------------------------------------------------
