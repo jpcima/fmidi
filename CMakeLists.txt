@@ -34,10 +34,14 @@ if(FMIDI_PROGRAMS)
   set(fmidi-play_BUILD FALSE)
   find_library(ev_LIBRARY ev)
 
-  find_library(PkgConfig REQUIRED)
   find_package(Curses)
-  pkg_check_modules(rtmidi rtmidi)
-  if(NOT rtmidi_FOUND)
+  find_package(PkgConfig)
+  if(PKG_CONFIG_FOUND)
+    pkg_check_modules(rtmidi "rtmidi")
+  endif()
+  if(NOT PKG_CONFIG_FOUND)
+    message(STATUS "pkg-config is missing, NOT building program fmidi-play.")
+  elseif(NOT rtmidi_FOUND)
     message(STATUS "rtmidi is missing, NOT building program fmidi-play.")
   elseif(NOT CURSES_FOUND)
     message(STATUS "curses is missing, NOT building program fmidi-play.")
@@ -67,9 +71,16 @@ endif()
 # THIRDPARTY #
 ##############
 
-add_library(fmidi-fmt INTERFACE)
-target_include_directories(fmidi-fmt INTERFACE thirdparty/fmt)
-target_compile_definitions(fmidi-fmt INTERFACE "FMT_HEADER_ONLY=1")
+if(TARGET fmidi-fmt)
+  message(STATUS "Target fmidi-fmt exists, using it as library")
+else()
+  message(STATUS "Target fmidi-fmt does not exist, using the system library")
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(fmt "fmt" REQUIRED)
+  add_library(fmidi-fmt INTERFACE)
+  target_include_directories(fmidi-fmt INTERFACE ${fmt_INCLUDE_DIRS})
+  target_link_libraries(fmidi-fmt INTERFACE ${fmt_LIBRARIES})
+endif()
 
 #############
 # LIBRARIES #
