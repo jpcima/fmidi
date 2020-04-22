@@ -29,7 +29,7 @@ struct fmidi_seq {
     std::unique_ptr<fmidi_seq_track_info[]> track;
 };
 
-static const double fmidi_convert_delta(
+static double fmidi_convert_delta(
     const fmidi_seq_t *seq, uint16_t trkno, double delta)
 {
     uint16_t unit = fmidi_smf_get_info(seq->smf)->delta_unit;
