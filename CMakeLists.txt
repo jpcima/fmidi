@@ -36,10 +36,6 @@ endif()
 
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost OPTIONAL_COMPONENTS filesystem system)
-if(Boost_FOUND)
-  add_definitions("-DFMIDI_USE_BOOST")
-endif()
-
 
 set(fmidi-play_BUILD FALSE)
 find_library(ev_LIBRARY ev)
@@ -86,7 +82,6 @@ target_compile_definitions(fmidi-fmt INTERFACE "FMT_HEADER_ONLY=1")
 
 set(fmidi_SOURCES
   sources/fmidi/u_memstream.cc
-  sources/fmidi/u_stdio.cc
   sources/fmidi/file/read_smf.cc
   sources/fmidi/file/write_smf.cc
   sources/fmidi/file/read_xmi.cc

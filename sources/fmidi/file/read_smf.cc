@@ -451,23 +451,3 @@ fmidi_smf_t *fmidi_smf_stream_read(FILE *stream)
     fmidi_smf_t *smf = fmidi_smf_mem_read(buf.get(), length);
     return smf;
 }
-
-void fmidi_smf_describe(const fmidi_smf_t *smf, FILE *stream)
-{
-#if defined(FMIDI_USE_BOOST)
-    FILE_stream outs(stream);
-    outs << *smf;
-#else
-    fmt::print(stream, "{}", *smf);
-#endif
-}
-
-void fmidi_event_describe(const fmidi_event_t *evt, FILE *stream)
-{
-#if defined(FMIDI_USE_BOOST)
-    FILE_stream outs(stream);
-    outs << *evt;
-#else
-    fmt::print(stream, "{}", *evt);
-#endif
-}
