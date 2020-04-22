@@ -8,6 +8,7 @@ list(APPEND CMAKE_MODULE_PATH "${cmake_MODULE_DIR}")
 option(FMIDI_ENABLE_DEBUG "enable debugging features" OFF)
 option(FMIDI_PIC "enable position independent code" ON)
 option(FMIDI_STATIC "build as static library" ON)
+option(FMIDI_PLAYER_LIBRARY "Build the fmidi-player library for callback-based playing of midi files" ON)
 
 if(FMIDI_ENABLE_DEBUG)
   add_definitions("-DFMIDI_DEBUG=1")
@@ -41,15 +42,9 @@ if(Boost_FOUND)
 endif()
 
 find_library(ev_LIBRARY ev)
-set(fmidi-player_BUILD FALSE)
-if(ev_LIBRARY)
-  set(fmidi-player_BUILD TRUE)
-else()
-  message(STATUS "libev is missing, NOT building library fmidi-player.")
-endif()
 
 set(fmidi-play_BUILD FALSE)
-if(fmidi-player_BUILD)
+if(FMIDI_PLAYER_LIBRARY)
   include(FindPkgConfig)
   find_package(Curses)
   pkg_check_modules(rtmidi rtmidi)
@@ -59,6 +54,8 @@ if(fmidi-player_BUILD)
     message(STATUS "curses is missing, NOT building program fmidi-play.")
   elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND NOT (Boost_FOUND AND Boost_FILESYSTEM_LIBRARY AND Boost_SYSTEM_LIBRARY))
     message(STATUS "Boost is missing, NOT building program fmidi-play.")
+  elseif(NOT ev_LIBRARY)
+    message(STATUS "libev is missing, NOT building program fmidi-play.")
   else()
     set(fmidi-play_BUILD TRUE)
   endif()
@@ -123,12 +120,10 @@ install(TARGETS fmidi
 install(FILES sources/fmidi/fmidi.h
   DESTINATION "include")
 
-if(fmidi-player_BUILD)
+if(FMIDI_PLAYER_LIBRARY)
   add_library(fmidi-player "${fmidi_LIB_TYPE}" ${fmidi-player_SOURCES})
   target_compile_definitions(fmidi-player
     PRIVATE "FMIDI_BUILD=1")
-  target_link_libraries(fmidi-player
-    PUBLIC fmidi "${ev_LIBRARY}")
   set_target_properties(fmidi-player PROPERTIES
     CXX_VISIBILITY_PRESET "hidden"
     SOVERSION 0.1)
@@ -160,7 +155,7 @@ Libs: -L\${libdir} -lfmidi
 install(FILES "${CMAKE_BINARY_DIR}/fmidi.pc"
   DESTINATION "lib/pkgconfig")
 
-if(fmidi-player_BUILD)
+if(FMIDI_PLAYER_LIBRARY)
   file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/fmidi-player.pc"
     CONTENT "prefix=${CMAKE_INSTALL_PREFIX}
 libdir=\${prefix}/lib
@@ -199,7 +194,9 @@ install(TARGETS fmidi-convert
 if(fmidi-play_BUILD)
   add_executable(fmidi-play programs/midi-play.cc programs/playlist.cc)
   target_link_libraries(fmidi-play
-    PRIVATE fmidi-player ${rtmidi_LIBRARIES} ${CURSES_LIBRARIES})
+  PRIVATE fmidi-player fmidi ${rtmidi_LIBRARIES} ${CURSES_LIBRARIES})
+  target_link_libraries(fmidi-play
+    PRIVATE fmidi-player ${ev_LIBRARY})
   target_include_directories(fmidi-play
     PRIVATE ${rtmidi_INCLUDE_DIRS} ${CURSES_INCLUDE_DIRS})
   link_directories(${rtmidi_LIBRARY_DIRS})
