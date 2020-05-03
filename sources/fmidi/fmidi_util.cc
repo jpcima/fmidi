@@ -6,8 +6,10 @@
 #include "fmidi/fmidi_util.h"
 #include "fmidi/fmidi_internal.h"
 #include "fmidi/u_memstream.h"
+#if !defined(FMIDI_DISABLE_DESCRIBE_API)
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#endif
 #include <string>
 
 double fmidi_smpte_time(const fmidi_smpte *smpte)
@@ -94,6 +96,7 @@ const std::error_category &fmidi_category() {
 };
 
 //------------------------------------------------------------------------------
+#if !defined(FMIDI_DISABLE_DESCRIBE_API)
 template <class OutputStreamRef>
 static bool fmidi_repr_meta(OutputStreamRef out, const uint8_t *data, uint32_t len)
 {
@@ -494,3 +497,4 @@ std::ostream &operator<<(std::ostream &out, const printfmt_bytes &b)
     }
     return out;
 }
+#endif // !defined(FMIDI_DISABLE_DESCRIBE_API)

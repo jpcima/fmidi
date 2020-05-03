@@ -6,6 +6,7 @@
 #pragma once
 #include "fmidi/fmidi.h"
 
+#if !defined(FMIDI_DISABLE_DESCRIBE_API)
 //------------------------------------------------------------------------------
 struct printfmt_quoted {
     printfmt_quoted(const char *text, size_t length)
@@ -23,6 +24,7 @@ struct printfmt_bytes {
     size_t size = 0;
 };
 std::ostream &operator<<(std::ostream &out, const printfmt_bytes &b);
+#endif // !defined(FMIDI_DISABLE_DESCRIBE_API)
 
 //------------------------------------------------------------------------------
 extern thread_local fmidi_error_info_t fmidi_last_error;
