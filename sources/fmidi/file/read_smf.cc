@@ -8,8 +8,6 @@
 #include "fmidi/fmidi_internal.h"
 #include "fmidi/u_memstream.h"
 #include "fmidi/u_stdio.h"
-#include <fmt/format.h>
-#include <fmt/ostream.h>
 #include <vector>
 #include <memory>
 #include <algorithm>
