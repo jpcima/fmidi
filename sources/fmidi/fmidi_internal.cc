@@ -3,7 +3,7 @@
 //    (See accompanying file LICENSE.md or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#include "fmidi_internal.h"
+#include "fmidi/fmidi_internal.h"
 
 thread_local fmidi_error_info_t fmidi_last_error;
 

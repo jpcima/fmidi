@@ -3,9 +3,9 @@
 //    (See accompanying file LICENSE.md or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#include "fmidi_util.h"
-#include "fmidi_internal.h"
-#include "u_memstream.h"
+#include "fmidi/fmidi_util.h"
+#include "fmidi/fmidi_internal.h"
+#include "fmidi/u_memstream.h"
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <string>

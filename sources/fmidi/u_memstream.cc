@@ -3,7 +3,7 @@
 //    (See accompanying file LICENSE.md or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#include "u_memstream.h"
+#include "fmidi/u_memstream.h"
 
 memstream_status memstream::setpos(size_t off)
 {
