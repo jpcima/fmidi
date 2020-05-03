@@ -7,6 +7,12 @@
 #include <memory>
 #include <stdio.h>
 
+////////////////////////
+// FILE PATH ENCODING //
+////////////////////////
+
+FILE *fmidi_fopen(const char *path, const char *mode);
+
 ///////////////
 // FILE RAII //
 ///////////////

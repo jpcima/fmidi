@@ -420,7 +420,7 @@ void fmidi_smf_free(fmidi_smf_t *smf)
 
 fmidi_smf_t *fmidi_smf_file_read(const char *filename)
 {
-    unique_FILE fh(fopen(filename, "rb"));
+    unique_FILE fh(fmidi_fopen(filename, "rb"));
     if (!fh)
         RET_FAIL(nullptr, fmidi_err_input);
 

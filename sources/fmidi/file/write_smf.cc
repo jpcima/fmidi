@@ -127,7 +127,7 @@ bool fmidi_smf_mem_write(const fmidi_smf_t *smf, uint8_t **data, size_t *length)
 
 bool fmidi_smf_file_write(const fmidi_smf_t *smf, const char *filename)
 {
-    unique_FILE fh(fopen(filename, "wb"));
+    unique_FILE fh(fmidi_fopen(filename, "wb"));
     if (!fh)
         RET_FAIL(false, fmidi_err_output);
 

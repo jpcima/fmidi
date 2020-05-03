@@ -436,7 +436,7 @@ fmidi_smf_t *fmidi_xmi_mem_read(const uint8_t *data, size_t length)
 
 fmidi_smf_t *fmidi_xmi_file_read(const char *filename)
 {
-    unique_FILE fh(fopen(filename, "rb"));
+    unique_FILE fh(fmidi_fopen(filename, "rb"));
     if (!fh)
         RET_FAIL(nullptr, fmidi_err_input);
 

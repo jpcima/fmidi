@@ -88,6 +88,7 @@ endif()
 
 set(fmidi_SOURCES
   sources/fmidi/u_memstream.cc
+  sources/fmidi/u_stdio.cc
   sources/fmidi/file/read_smf.cc
   sources/fmidi/file/write_smf.cc
   sources/fmidi/file/read_xmi.cc
