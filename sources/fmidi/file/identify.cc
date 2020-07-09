@@ -26,6 +26,10 @@ fmidi_fileformat_t fmidi_mem_identify(const uint8_t *data, size_t length)
     if (length >= 20 && memcmp(data, xmi_magic, 20) == 0)
         return fmidi_fileformat_xmi;
 
+    const uint8_t mus_magic[4] = {'M', 'U', 'S', 0x1a};
+    if (length >= 4 && memcmp(data, mus_magic, 4) == 0)
+        return fmidi_fileformat_mus;
+
     RET_FAIL((fmidi_fileformat_t)-1, fmidi_err_format);
 }
 
@@ -48,6 +52,8 @@ fmidi_smf_t *fmidi_auto_mem_read(const uint8_t *data, size_t length)
         return fmidi_smf_mem_read(data, length);
     case fmidi_fileformat_xmi:
         return fmidi_xmi_mem_read(data, length);
+    case fmidi_fileformat_mus:
+        return fmidi_mus_mem_read(data, length);
     default:
         return nullptr;
     }
@@ -70,6 +76,8 @@ fmidi_smf_t *fmidi_auto_stream_read(FILE *stream)
         return fmidi_smf_stream_read(stream);
     case fmidi_fileformat_xmi:
         return fmidi_xmi_stream_read(stream);
+    case fmidi_fileformat_mus:
+        return fmidi_mus_stream_read(stream);
     default:
         return nullptr;
     }

@@ -92,6 +92,7 @@ set(fmidi_SOURCES
   sources/fmidi/file/read_smf.cc
   sources/fmidi/file/write_smf.cc
   sources/fmidi/file/read_xmi.cc
+  sources/fmidi/file/read_mus.cc
   sources/fmidi/file/identify.cc
   sources/fmidi/fmidi_internal.cc
   sources/fmidi/fmidi_seq.cc
