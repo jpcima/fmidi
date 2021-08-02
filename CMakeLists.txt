@@ -155,16 +155,22 @@ if(FMIDI_PROGRAMS)
   target_link_libraries(fmidi-read PRIVATE fmidi fmidi-fmt)
   install(TARGETS fmidi-read
     RUNTIME DESTINATION "bin")
+  install(FILES "${PROJECT_SOURCE_DIR}/man/fmidi-read.1"
+    DESTINATION "share/man/man1")
 
   add_executable(fmidi-seq programs/midi-seq.cc)
   target_link_libraries(fmidi-seq PRIVATE fmidi fmidi-fmt)
   install(TARGETS fmidi-seq
     RUNTIME DESTINATION "bin")
+  install(FILES "${PROJECT_SOURCE_DIR}/man/fmidi-seq.1"
+    DESTINATION "share/man/man1")
 
   add_executable(fmidi-convert programs/midi-convert.cc)
   target_link_libraries(fmidi-convert PRIVATE fmidi fmidi-fmt)
   install(TARGETS fmidi-convert
     RUNTIME DESTINATION "bin")
+  install(FILES "${PROJECT_SOURCE_DIR}/man/fmidi-convert.1"
+    DESTINATION "share/man/man1")
 
   if(fmidi-play_BUILD)
     add_executable(fmidi-play programs/midi-play.cc programs/playlist.cc)
@@ -175,6 +181,8 @@ if(FMIDI_PROGRAMS)
     link_directories(${rtmidi_LIBRARY_DIRS})
     install(TARGETS fmidi-play
       RUNTIME DESTINATION "bin")
+    install(FILES "${PROJECT_SOURCE_DIR}/man/fmidi-play.1"
+      DESTINATION "share/man/man1")
     if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
       target_compile_definitions(fmidi-play PRIVATE "FMIDI_PLAY_USE_BOOST_FILESYSTEM=")
       target_link_libraries(fmidi-play PRIVATE "${Boost_FILESYSTEM_LIBRARY}" "${Boost_SYSTEM_LIBRARY}")
@@ -186,5 +194,7 @@ if(FMIDI_PROGRAMS)
     target_link_libraries(fmidi-grep PRIVATE fmidi fmidi-fmt)
     install(TARGETS fmidi-grep
       RUNTIME DESTINATION "bin")
+    install(FILES "${PROJECT_SOURCE_DIR}/man/fmidi-grep.1"
+      DESTINATION "share/man/man1")
   endif()
 endif()

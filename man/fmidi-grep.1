@@ -1,0 +1,31 @@
+.TH FMIDI\-GREP "1" "August 2021" "" "User Commands"
+.SH NAME
+fmidi\-grep \(en search for pattern matches in one or more input files
+.SH SYNOPSIS
+.B fmidi\-grep
+.RI [ OPTION \ ...]
+.I PATTERN
+.I INPUT
+.RI [ INPUT \ ...]
+.P
+Searches for pattern matches in one or more
+.I INPUT
+files and writes results on
+.BR stdout .
+.SH OPTIONS
+.TP
+.B \-r\fR,\fB\-R
+recursive
+.TP
+.B \-E
+extended pattern
+.TP
+.B \-F
+fixed string pattern
+.SH "SEE\ ALSO"
+.BR fmidi\-convert (1),
+.BR fmidi\-play (1),
+.BR fmidi\-read (1),
+.BR fmidi\-seq (1)
+.P
+.BR grep (1)
