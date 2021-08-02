@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.3)
 include(CMakeDependentOption)
 
-project(fmidi VERSION 0.1 LANGUAGES C CXX)
+project(fmidi VERSION 0.1.1 LANGUAGES C CXX)
 
 set(cmake_MODULE_DIR "${PROJECT_SOURCE_DIR}/cmake")
 list(APPEND CMAKE_MODULE_PATH "${cmake_MODULE_DIR}")
