@@ -1,0 +1,34 @@
+.TH FMIDI\-PLAY "1" "August 2021" "" "User Commands"
+.SH NAME
+fmidi\-play \(en MIDI player with a terminal interface
+.SH SYNOPSIS
+.B fmidi\-play
+.RI [ OPTION \ ...]
+.I INPUT
+.RI [ INPUT \ ...]
+.P
+Plays the specified MIDI file or files with an interactive terminal interface.
+.SH OPTIONS
+.TP
+.B \-r
+Play
+.I INPUT
+files in random order.
+.TP
+.B \-n\fR\ \fINAME
+Specify MIDI client name (default
+.RB \(lq fmidi \(rq).
+.TP
+.B \-M\ \fR[\fBalsa\fR|\fBjack\fR]
+Choose a particular MIDI API for playback; default is unspecified, allowing the
+implementation to choose.
+.TP
+.B \-L\fR\ \fILOG
+Write a playback log to the given
+.I LOG
+file path.
+.SH "SEE\ ALSO"
+.BR fmidi\-convert (1),
+.BR fmidi\-grep (1),
+.BR fmidi\-read (1),
+.BR fmidi\-seq (1)

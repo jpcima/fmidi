@@ -1,0 +1,27 @@
+.TH FMIDI\-READ "1" "August 2021" "" "User Commands"
+.SH NAME
+fmidi\-read \(en print a textual representation of a music file
+.SH SYNOPSIS
+.B fmidi\-read
+.I INPUT
+.RI [ INPUT \ ...]
+.P
+Reads each
+.I INPUT
+file and prints a textual s-expression representation.
+.SH "EXIT\ STATUS"
+.TP
+.B 0
+if all
+.I INPUT
+files were successfully read
+.TP
+.B 1
+if any
+.I INPUT
+file could not be read; the file in question may be broken beyond repair
+.SH "SEE\ ALSO"
+.BR fmidi\-convert (1),
+.BR fmidi\-grep (1),
+.BR fmidi\-play (1),
+.BR fmidi\-seq (1)

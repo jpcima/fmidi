@@ -1,0 +1,20 @@
+.TH FMIDI\-SEQ "1" "August 2021" "" "User Commands"
+.SH NAME
+fmidi\-seq \(en a MIDI sequencer
+.SH SYNOPSIS
+.B fmidi\-seq
+.I INPUT
+.P
+From the
+.I INPUT
+file,
+.BR fmidi\-seq (1)
+calculates the precise time in seconds where individual MIDI events would occur
+in playback, producing a textual output.
+The result is structured as an S-expression; each event is represented as a
+tuple of the track number, the time (offset) in seconds, and the MIDI event.
+.SH "SEE\ ALSO"
+.BR fmidi\-convert (1),
+.BR fmidi\-grep (1),
+.BR fmidi\-play (1),
+.BR fmidi\-read (1)
