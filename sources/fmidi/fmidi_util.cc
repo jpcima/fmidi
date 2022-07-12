@@ -6,10 +6,6 @@
 #include "fmidi/fmidi_util.h"
 #include "fmidi/fmidi_internal.h"
 #include "fmidi/u_memstream.h"
-#if !defined(FMIDI_DISABLE_DESCRIBE_API)
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-#endif
 #include <string>
 
 double fmidi_smpte_time(const fmidi_smpte *smpte)

@@ -7,6 +7,12 @@
 #include "fmidi/fmidi.h"
 
 #if !defined(FMIDI_DISABLE_DESCRIBE_API)
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+
+template <> struct fmt::formatter<fmidi_smf_t> : ostream_formatter {};
+template <> struct fmt::formatter<fmidi_event_t> : ostream_formatter {};
+
 //------------------------------------------------------------------------------
 struct printfmt_quoted {
     printfmt_quoted(const char *text, size_t length)
@@ -16,6 +22,8 @@ struct printfmt_quoted {
 };
 std::ostream &operator<<(std::ostream &out, const printfmt_quoted &q);
 
+template <> struct fmt::formatter<printfmt_quoted> : ostream_formatter {};
+
 //------------------------------------------------------------------------------
 struct printfmt_bytes {
     printfmt_bytes(const uint8_t *data, size_t size)
@@ -24,6 +32,9 @@ struct printfmt_bytes {
     size_t size = 0;
 };
 std::ostream &operator<<(std::ostream &out, const printfmt_bytes &b);
+
+template <> struct fmt::formatter<printfmt_bytes> : ostream_formatter {};
+
 #endif // !defined(FMIDI_DISABLE_DESCRIBE_API)
 
 //------------------------------------------------------------------------------

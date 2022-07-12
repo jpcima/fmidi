@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
     while (fmidi_seq_next_event(seq.get(), &plevt)) {
         const fmidi_event_t *evt = plevt.event;
         fmt::print(std::cout, "\n  ({:<3} {:<12.6f} {})",
-                   plevt.track, plevt.time, *evt);
+                   plevt.track, plevt.time, fmt::streamed(*evt));
     }
     fmt::print(")\n");
 

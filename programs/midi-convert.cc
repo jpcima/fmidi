@@ -4,7 +4,6 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "common.h"
-#include <fmt/format.h>
 #if !defined(_WIN32)
 #include <unistd.h>
 #else
