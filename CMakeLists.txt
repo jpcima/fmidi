@@ -38,6 +38,9 @@ if(FMIDI_PROGRAMS)
   find_package(PkgConfig)
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(rtmidi "rtmidi")
+    if(rtmidi_FOUND)
+      link_directories(${rtmidi_LIBRARY_DIRS})
+    endif()
   endif()
   if(NOT PKG_CONFIG_FOUND)
     message(STATUS "pkg-config is missing, NOT building program fmidi-play.")
@@ -178,7 +181,6 @@ if(FMIDI_PROGRAMS)
       PRIVATE fmidi ${rtmidi_LIBRARIES} ${CURSES_LIBRARIES} ${ev_LIBRARY})
     target_include_directories(fmidi-play
       PRIVATE ${rtmidi_INCLUDE_DIRS} ${CURSES_INCLUDE_DIRS})
-    link_directories(${rtmidi_LIBRARY_DIRS})
     install(TARGETS fmidi-play
       RUNTIME DESTINATION "bin")
     install(FILES "man/fmidi-play.1"
