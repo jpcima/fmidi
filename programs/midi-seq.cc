@@ -4,10 +4,8 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "common.h"
-#include <fmt/format.h>
-#include <fmt/ostream.h>
 #include <memory>
-#include <iostream>
+#include <stdio.h>
 
 int main(int argc, char *argv[])
 {
@@ -26,14 +24,15 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    fmt::print("(midi-sequence");
+    fputs("(midi-sequence", stdout);
     fmidi_seq_event_t plevt;
     while (fmidi_seq_next_event(seq.get(), &plevt)) {
         const fmidi_event_t *evt = plevt.event;
-        fmt::print(std::cout, "\n  ({:<3} {:<12.6f} {})",
-                   plevt.track, plevt.time, fmt::streamed(*evt));
+        printf("\n  (%-3d %12.6f ", plevt.track, plevt.time);
+        fmidi_event_describe(evt, stdout);
+        fputc(')', stdout);
     }
-    fmt::print(")\n");
+    fputs(")\n", stdout);
 
     return 0;
 }

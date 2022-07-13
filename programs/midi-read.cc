@@ -4,7 +4,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "common.h"
-#include <iostream>
+#include <stdio.h>
 
 int main(int argc, char *argv[])
 {
@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
             print_error();
             return 1;
         }
-        std::cout << *smf;
+        fmidi_smf_describe(smf.get(), stdout);
     }
 
     return 0;

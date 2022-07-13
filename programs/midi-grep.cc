@@ -7,8 +7,6 @@
 #include <getopt.h>
 #include <fts.h>
 #include <sys/stat.h>
-#include <fmt/format.h>
-#include <fmt/ostream.h>
 #include <boost/iostreams/filter/line.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <regex>
@@ -37,19 +35,30 @@ public:
 
     explicit Matching_Filter(const Pattern &pat, const char *file_path, bool &has_match)
         : base_type(true),
-          pat_(pat), file_path_(file_path), has_match_(has_match) {}
+          pat_(pat), file_path_(file_path), file_path_len_(strlen(file_path)),
+          has_match_(has_match) {}
 
     string_type do_filter(const string_type &line) override
     {
         if (!pat_.match(line.data(), line.size()))
             return std::string();
+
         has_match_ = true;
-        return fmt::format("{}: {}\n", file_path_, line);
+
+        std::string result;
+        result.reserve(file_path_len_ + line.size() + 3);
+        result.append(file_path_, file_path_ + file_path_len_);
+        result.push_back(':');
+        result.push_back(' ');
+        result.append(line);
+        result.push_back('\n');
+        return result;
     }
 
 private:
     const Pattern &pat_;
     const char *file_path_ = nullptr;
+    size_t file_path_len_ = 0;
     bool &has_match_;
 };
 
@@ -118,13 +127,12 @@ private:
 
 void usage()
 {
-    fmt::print(
-        std::cerr,
+    std::cerr <<
         "Usage: fmidi-grep [options] <pattern> <input> [input...]\n"
         "  -r,-R   recursive\n"
         "  -E      extended pattern\n"
         "  -F      fixed string pattern\n"
-        "");
+        "";
 }
 
 int main(int argc, char *argv[])
