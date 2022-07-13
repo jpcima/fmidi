@@ -10,8 +10,15 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
-template <> struct fmt::formatter<fmidi_smf_t> : ostream_formatter {};
-template <> struct fmt::formatter<fmidi_event_t> : ostream_formatter {};
+template <> struct fmt::formatter<fmidi_smf_t> {
+    constexpr format_parse_context::iterator parse(format_parse_context &ctx) const { return ctx.begin(); }
+    fmt::format_context::iterator format(const fmidi_smf_t &obj, fmt::format_context &ctx);
+};
+
+template <> struct fmt::formatter<fmidi_event_t> {
+    constexpr format_parse_context::iterator parse(format_parse_context &ctx) const { return ctx.begin(); }
+    fmt::format_context::iterator format(const fmidi_event_t &obj, fmt::format_context &ctx);
+};
 
 //------------------------------------------------------------------------------
 struct printfmt_quoted {
@@ -20,9 +27,11 @@ struct printfmt_quoted {
     const char *text = nullptr;
     size_t length = 0;
 };
-std::ostream &operator<<(std::ostream &out, const printfmt_quoted &q);
 
-template <> struct fmt::formatter<printfmt_quoted> : ostream_formatter {};
+template <> struct fmt::formatter<printfmt_quoted> {
+    constexpr format_parse_context::iterator parse(format_parse_context &ctx) const { return ctx.begin(); }
+    fmt::format_context::iterator format(const printfmt_quoted &obj, fmt::format_context &ctx);
+};
 
 //------------------------------------------------------------------------------
 struct printfmt_bytes {
@@ -31,9 +40,11 @@ struct printfmt_bytes {
     const uint8_t *data = nullptr;
     size_t size = 0;
 };
-std::ostream &operator<<(std::ostream &out, const printfmt_bytes &b);
 
-template <> struct fmt::formatter<printfmt_bytes> : ostream_formatter {};
+template <> struct fmt::formatter<printfmt_bytes> {
+    constexpr format_parse_context::iterator parse(format_parse_context &ctx) const { return ctx.begin(); }
+    fmt::format_context::iterator format(const printfmt_bytes &obj, fmt::format_context &ctx);
+};
 
 #endif // !defined(FMIDI_DISABLE_DESCRIBE_API)
 
