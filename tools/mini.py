@@ -53,6 +53,15 @@ def process_file(file):
                 process_file(selected)
         line_no += 1
 
+def search_files_orderly(source_dir, pattern):
+    items = []
+    for root, dirs, files in os.walk(source_dir):
+        for file in files:
+            if fnmatch.fnmatch(file, pattern):
+                items.append((root, file))
+    for root, file in sorted(items):
+        yield os.path.join(root, file)
+
 if __name__ == '__main__':
     if not os.path.isdir(source_dir):
         sys.stderr.write('Please run this tool in the project directory.\n')
@@ -79,7 +88,5 @@ if __name__ == '__main__':
 // =============================================================================
 """ % (revision))
 
-    for root, dirs, files in os.walk(source_dir):
-        for file in files:
-            if fnmatch.fnmatch(file, '*.c*'):
-                process_file(os.path.join(root, file))
+    for path in search_files_orderly(source_dir, '*.c*'):
+        process_file(path)
