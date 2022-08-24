@@ -153,9 +153,8 @@ void Random_Play_List::scan_files(const std::string &path)
         while (it != fs::recursive_directory_iterator()) {
             ec.clear();
             st = it->status(ec);
-            if (ec || st.type() != fs::file_type::regular)
-                continue;
-            files_.emplace_back(it->path().string());
+            if (!ec && st.type() == fs::file_type::regular)
+                files_.emplace_back(it->path().string());
             ec.clear();
             it.increment(ec);
             if (ec)
