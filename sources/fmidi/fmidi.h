@@ -205,6 +205,11 @@ FMIDI_API void fmidi_player_finish_callback(
 #if !defined(FMIDI_DISABLE_DESCRIBE_API)
 FMIDI_API void fmidi_smf_describe(const fmidi_smf_t *smf, FILE *stream);
 FMIDI_API void fmidi_event_describe(const fmidi_event_t *evt, FILE *stream);
+
+FMIDI_API void fmidi_smf_describe_by_line(
+    const fmidi_smf_t *smf, void (*cbfn)(const char *, size_t, void *), void *cbdata);
+FMIDI_API void fmidi_event_describe_by_line(
+    const fmidi_event_t *evt, void (*cbfn)(const char *, size_t, void *), void *cbdata);
 #endif
 
 ////////////

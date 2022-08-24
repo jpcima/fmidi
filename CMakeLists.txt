@@ -63,8 +63,6 @@ int main() { return fts_close((FTS *)0); }" fmidi_HAVE_FTS)
   set(fmidi-grep_BUILD FALSE)
   if(NOT fmidi_HAVE_FTS)
     message(STATUS "fts is missing, NOT building program fmidi-grep.")
-  elseif(NOT Boost_FOUND)
-    message(STATUS "Boost is missing, NOT building program fmidi-grep.")
   else()
     set(fmidi-grep_BUILD TRUE)
   endif()
@@ -92,6 +90,7 @@ endif()
 set(fmidi_SOURCES
   sources/fmidi/u_memstream.cc
   sources/fmidi/u_stdio.cc
+  sources/fmidi/u_iterator.cc
   sources/fmidi/file/read_smf.cc
   sources/fmidi/file/write_smf.cc
   sources/fmidi/file/read_xmi.cc

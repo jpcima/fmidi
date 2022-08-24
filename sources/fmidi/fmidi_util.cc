@@ -6,6 +6,7 @@
 #include "fmidi/fmidi_util.h"
 #include "fmidi/fmidi_internal.h"
 #include "fmidi/u_memstream.h"
+#include "fmidi/u_iterator.h"
 #include <string>
 
 double fmidi_smpte_time(const fmidi_smpte *smpte)
@@ -427,6 +428,16 @@ void fmidi_smf_describe(const fmidi_smf_t *smf, FILE *stream)
     fmt::print(stream, "{}", *smf);
 }
 
+void fmidi_smf_describe_by_line(
+    const fmidi_smf_t *smf, void (*cbfn)(const char *, size_t, void *), void *cbdata)
+{
+    std::vector<char> buffer;
+    buffer.reserve(1024);
+    callback_insert_iterator out{cbdata, cbfn, buffer};
+    fmidi_repr_smf(out, *smf);
+    out.flush();
+}
+
 template <class FmtOutputIterator>
 static void fmidi_repr_event(FmtOutputIterator &out, const fmidi_event_t &evt)
 {
@@ -468,6 +479,16 @@ std::ostream &operator<<(std::ostream &out, const fmidi_event_t &evt)
 void fmidi_event_describe(const fmidi_event_t *evt, FILE *stream)
 {
     fmt::print(stream, "{}", *evt);
+}
+
+void fmidi_event_describe_by_line(
+    const fmidi_event_t *evt, void (*cbfn)(const char *, size_t, void *), void *cbdata)
+{
+    std::vector<char> buffer;
+    buffer.reserve(1024);
+    callback_insert_iterator out{cbdata, cbfn, buffer};
+    fmidi_repr_event(out, *evt);
+    out.flush();
 }
 
 //------------------------------------------------------------------------------

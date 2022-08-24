@@ -7,12 +7,9 @@
 #include <getopt.h>
 #include <fts.h>
 #include <sys/stat.h>
-#include <boost/iostreams/filter/line.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
 #include <regex>
-#include <iostream>
+#include <stdio.h>
 #include <string.h>
-namespace io = boost::iostreams;
 
 struct FTS_Deleter {
     void operator()(FTS *x) const noexcept
@@ -25,54 +22,37 @@ public:
     virtual bool match(const char *p, size_t n) const = 0;
 };
 
-class Matching_Filter : public io::basic_line_filter<char> {
-    typedef io::basic_line_filter<char> base_type;
-public:
-    typedef typename base_type::char_type char_type;
-    typedef typename base_type::category category;
-    typedef std::char_traits<char_type> traits_type;
-    typedef typename base_type::string_type string_type;
-
-    explicit Matching_Filter(const Pattern &pat, const char *file_path, bool &has_match)
-        : base_type(true),
-          pat_(pat), file_path_(file_path), file_path_len_(strlen(file_path)),
-          has_match_(has_match) {}
-
-    string_type do_filter(const string_type &line) override
-    {
-        if (!pat_.match(line.data(), line.size()))
-            return std::string();
-
-        has_match_ = true;
-
-        std::string result;
-        result.reserve(file_path_len_ + line.size() + 3);
-        result.append(file_path_, file_path_ + file_path_len_);
-        result.push_back(':');
-        result.push_back(' ');
-        result.append(line);
-        result.push_back('\n');
-        return result;
-    }
-
-private:
-    const Pattern &pat_;
-    const char *file_path_ = nullptr;
-    size_t file_path_len_ = 0;
-    bool &has_match_;
-};
-
 static bool do_file(const char *path, const Pattern &pattern, bool &has_match)
 {
     fmidi_smf_u smf(fmidi_smf_file_read(path));
     if (!smf)
         return false;
 
-    io::filtering_ostream out;
-    out.push(Matching_Filter(pattern, path, has_match));
-    out.push(std::cout);
+    struct callback_data {
+        const char *path = nullptr;
+        const Pattern *pattern = nullptr;
+        bool *has_match = nullptr;
+    };
 
-    out << *smf;
+    callback_data cbdata;
+    cbdata.path = path;
+    cbdata.pattern = &pattern;
+    cbdata.has_match = &has_match;
+
+    fmidi_smf_describe_by_line(
+        smf.get(), [](const char *data, size_t size, void *cookie) {
+            callback_data *cbdata = (callback_data *)cookie;
+            if (cbdata->pattern->match(data, size)) {
+                fputs(cbdata->path, stdout);
+                fputs(": ", stdout);
+                fwrite(data, 1, size, stdout);
+                if (size > 0 && data[size - 1] != '\n')
+                    fputc('\n', stdout);
+                *cbdata->has_match = true;
+            }
+        },
+        &cbdata);
+
     return true;
 }
 
@@ -127,12 +107,13 @@ private:
 
 void usage()
 {
-    std::cerr <<
+    fputs(
         "Usage: fmidi-grep [options] <pattern> <input> [input...]\n"
         "  -r,-R   recursive\n"
         "  -E      extended pattern\n"
         "  -F      fixed string pattern\n"
-        "";
+        "",
+        stderr);
 }
 
 int main(int argc, char *argv[])
