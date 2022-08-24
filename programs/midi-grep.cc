@@ -5,16 +5,24 @@
 
 #include <fmidi/fmidi.h>
 #include <getopt.h>
+#if defined(FMIDI_GREP_HAVE_FTS)
 #include <fts.h>
+#else
+#include <filesystem>
+#include <system_error>
+namespace fs = std::filesystem;
+#endif
 #include <sys/stat.h>
 #include <regex>
 #include <stdio.h>
 #include <string.h>
 
+#if defined(FMIDI_GREP_HAVE_FTS)
 struct FTS_Deleter {
     void operator()(FTS *x) const noexcept
         { fts_close(x); }
 };
+#endif
 
 class Pattern {
 public:
@@ -71,6 +79,7 @@ static bool do_tree(const char *path, const Pattern &pattern, bool &has_match, b
 {
     bool success = true;
 
+#if defined(FMIDI_GREP_HAVE_FTS)
     char *const path_argv[2] = {(char *)path, nullptr};
     std::unique_ptr<FTS, FTS_Deleter> fts(fts_open(path_argv, FTS_LOGICAL|FTS_NOCHDIR, nullptr));
 
@@ -81,6 +90,29 @@ static bool do_tree(const char *path, const Pattern &pattern, bool &has_match, b
         if (S_ISREG(ent->fts_statp->st_mode))
             success &= do_file(ent->fts_path, pattern, has_match, matched_part_only);
     }
+#else
+    std::error_code ec;
+    fs::recursive_directory_iterator it{path, ec};
+    if (ec)
+        return false;
+    while (it != fs::recursive_directory_iterator{}) {
+        ec.clear();
+        fs::file_status st = it->status(ec);
+        if (!ec && st.type() == fs::file_type::regular) {
+#if defined(_WIN32)
+            success &= do_file(it->path().u8string().c_str(), pattern, has_match, matched_part_only);
+#else
+            success &= do_file(it->path().c_str(), pattern, has_match, matched_part_only);
+#endif
+        }
+        ec.clear();
+        it.increment(ec);
+        if (ec) {
+            success = false;
+            break;
+        }
+    }
+#endif
 
     return success;
 }

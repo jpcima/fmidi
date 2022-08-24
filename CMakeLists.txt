@@ -194,5 +194,8 @@ if(FMIDI_PROGRAMS)
       RUNTIME DESTINATION "bin")
     install(FILES "man/fmidi-grep.1"
       DESTINATION "share/man/man1")
+    if(fmidi_HAVE_FTS)
+      target_compile_definitions(fmidi-grep PRIVATE "FMIDI_GREP_HAVE_FTS")
+    endif()
   endif()
 endif()
