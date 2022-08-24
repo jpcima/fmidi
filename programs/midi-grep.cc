@@ -19,10 +19,10 @@ struct FTS_Deleter {
 class Pattern {
 public:
     virtual ~Pattern() {}
-    virtual bool match(const char *p, size_t n) const = 0;
+    virtual bool match(const char *p, size_t n, const char **matchp, size_t *matchn) const = 0;
 };
 
-static bool do_file(const char *path, const Pattern &pattern, bool &has_match)
+static bool do_file(const char *path, const Pattern &pattern, bool &has_match, bool matched_part_only)
 {
     fmidi_smf_u smf(fmidi_smf_file_read(path));
     if (!smf)
@@ -32,22 +32,33 @@ static bool do_file(const char *path, const Pattern &pattern, bool &has_match)
         const char *path = nullptr;
         const Pattern *pattern = nullptr;
         bool *has_match = nullptr;
+        bool matched_part_only = false;
     };
 
     callback_data cbdata;
     cbdata.path = path;
     cbdata.pattern = &pattern;
     cbdata.has_match = &has_match;
+    cbdata.matched_part_only = matched_part_only;
 
     fmidi_smf_describe_by_line(
         smf.get(), [](const char *data, size_t size, void *cookie) {
             callback_data *cbdata = (callback_data *)cookie;
-            if (cbdata->pattern->match(data, size)) {
+            const char *matchp = nullptr;
+            size_t matchn = 0;
+            if (cbdata->pattern->match(data, size, &matchp, &matchn)) {
                 fputs(cbdata->path, stdout);
                 fputc(':', stdout);
-                fwrite(data, 1, size, stdout);
-                if (size > 0 && data[size - 1] != '\n')
-                    fputc('\n', stdout);
+                if (!cbdata->matched_part_only) {
+                    fwrite(data, 1, size, stdout);
+                    if (size == 0 || data[size - 1] != '\n')
+                        fputc('\n', stdout);
+                }
+                else {
+                    fwrite(matchp, 1, matchn, stdout);
+                    if (matchn == 0 || matchp[matchn - 1] != '\n')
+                        fputc('\n', stdout);
+                }
                 *cbdata->has_match = true;
             }
         },
@@ -56,7 +67,7 @@ static bool do_file(const char *path, const Pattern &pattern, bool &has_match)
     return true;
 }
 
-static bool do_tree(const char *path, const Pattern &pattern, bool &has_match)
+static bool do_tree(const char *path, const Pattern &pattern, bool &has_match, bool matched_part_only)
 {
     bool success = true;
 
@@ -68,7 +79,7 @@ static bool do_tree(const char *path, const Pattern &pattern, bool &has_match)
 
     while (FTSENT *ent = fts_read(fts.get())) {
         if (S_ISREG(ent->fts_statp->st_mode))
-            success &= do_file(ent->fts_path, pattern, has_match);
+            success &= do_file(ent->fts_path, pattern, has_match, matched_part_only);
     }
 
     return success;
@@ -78,8 +89,15 @@ class Grep_Pattern : public Pattern {
 public:
     explicit Grep_Pattern(const char *pattern)
         : re_(pattern, std::regex::grep) {}
-    bool match(const char *p, size_t n) const override
-        { return std::regex_search(p, p + n, re_); }
+    bool match(const char *p, size_t n, const char **matchp, size_t *matchn) const override
+    {
+        std::cmatch m;
+        if (!std::regex_search(p, p + n, m, re_))
+            return false;
+        *matchp = m[0].first;
+        *matchn = m[0].length();
+        return true;
+    }
 private:
     std::regex re_;
 };
@@ -88,8 +106,15 @@ class EGrep_Pattern : public Pattern {
 public:
     explicit EGrep_Pattern(const char *pattern)
         : re_(pattern, std::regex::egrep) {}
-    bool match(const char *p, size_t n) const override
-        { return std::regex_search(p, p + n, re_); }
+    bool match(const char *p, size_t n, const char **matchp, size_t *matchn) const override
+    {
+        std::cmatch m;
+        if (!std::regex_search(p, p + n, m, re_))
+            return false;
+        *matchp = m[0].first;
+        *matchn = m[0].length();
+        return true;
+    }
 private:
     std::regex re_;
 };
@@ -98,8 +123,15 @@ class Text_Pattern : public Pattern {
 public:
     explicit Text_Pattern(const char *pattern)
         : pat_(pattern), patlen_(strlen(pattern)) {}
-    bool match(const char *p, size_t n) const override
-        { return memmem(p, n, pat_, patlen_) != nullptr; }
+    bool match(const char *p, size_t n, const char **matchp, size_t *matchn) const override
+    {
+        const char *q = (const char *)memmem(p, n, pat_, patlen_);
+        if (!q)
+            return false;
+        *matchp = q;
+        *matchn = patlen_;
+        return true;
+    }
 private:
     const char *pat_ = nullptr;
     size_t patlen_ = 0;
@@ -112,6 +144,7 @@ void usage()
         "  -r,-R   recursive\n"
         "  -E      extended pattern\n"
         "  -F      fixed string pattern\n"
+        "  -o      matched part only\n"
         "",
         stderr);
 }
@@ -120,8 +153,9 @@ int main(int argc, char *argv[])
 {
     bool recurse = false;
     unsigned pattern_mode = std::regex::grep;
+    bool matched_part_only = false;
 
-    for (int c; (c = getopt(argc, argv, "rREFh")) != -1;) {
+    for (int c; (c = getopt(argc, argv, "rREFoh")) != -1;) {
         switch (c) {
         case 'r': case 'R':
             recurse = true; break;
@@ -129,6 +163,8 @@ int main(int argc, char *argv[])
             pattern_mode = std::regex::egrep; break;
         case 'F':
             pattern_mode = 0; break;
+        case 'o':
+            matched_part_only = true; break;
         case 'h':
             usage(); return 0;
         default:
@@ -160,7 +196,7 @@ int main(int argc, char *argv[])
     bool has_match = false;
     for (unsigned i = 0; i < num_inputs; ++i) {
         const char *input = inputs[i];
-        success &= (recurse ? do_tree : do_file)(input, *pat, has_match);
+        success &= (recurse ? do_tree : do_file)(input, *pat, has_match, matched_part_only);
     }
     if (!has_match)
         success = false;
