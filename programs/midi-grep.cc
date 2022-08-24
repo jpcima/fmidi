@@ -44,7 +44,7 @@ static bool do_file(const char *path, const Pattern &pattern, bool &has_match)
             callback_data *cbdata = (callback_data *)cookie;
             if (cbdata->pattern->match(data, size)) {
                 fputs(cbdata->path, stdout);
-                fputs(": ", stdout);
+                fputc(':', stdout);
                 fwrite(data, 1, size, stdout);
                 if (size > 0 && data[size - 1] != '\n')
                     fputc('\n', stdout);
