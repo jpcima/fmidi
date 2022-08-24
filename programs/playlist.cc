@@ -4,17 +4,17 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "playlist.h"
-#if defined(FMIDI_PLAY_USE_BOOST_FILESYSTEM)
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
-namespace sys = boost::system;
+#if !defined(FMIDI_PLAY_HAVE_FTS)
+#include <filesystem>
+#include <system_error>
+namespace fs = std::filesystem;
 #else
 #include <fts.h>
 #endif
 #include <memory>
 #include <ctime>
 
-#if !defined(FMIDI_PLAY_USE_BOOST_FILESYSTEM)
+#if defined(FMIDI_PLAY_HAVE_FTS)
 struct FTS_Deleter {
     void operator()(FTS *x) const
         { fts_close(x); }
@@ -115,7 +115,7 @@ size_t Random_Play_List::random_file() const
     return dist(prng_);
 }
 
-#if !defined(FMIDI_PLAY_USE_BOOST_FILESYSTEM)
+#if defined(FMIDI_PLAY_HAVE_FTS)
 void Random_Play_List::scan_files(const std::string &path)
 {
     char *path_argv[] = { (char *)path.c_str(), nullptr };
@@ -132,7 +132,7 @@ void Random_Play_List::scan_files(const std::string &path)
 #else
 void Random_Play_List::scan_files(const std::string &path)
 {
-    sys::error_code ec;
+    std::error_code ec;
 
     ec.clear();
     fs::file_status st = fs::status(path, ec);
@@ -142,10 +142,10 @@ void Random_Play_List::scan_files(const std::string &path)
     switch (st.type()) {
     default:
         break;
-    case fs::regular_file:
+    case fs::file_type::regular:
         files_.emplace_back(path);
         break;
-    case fs::directory_file:
+    case fs::file_type::directory:
         ec.clear();
         fs::recursive_directory_iterator it(path, ec);
         if (ec)
@@ -153,7 +153,7 @@ void Random_Play_List::scan_files(const std::string &path)
         while (it != fs::recursive_directory_iterator()) {
             ec.clear();
             st = it->status(ec);
-            if (ec || st.type() != fs::regular_file)
+            if (ec || st.type() != fs::file_type::regular)
                 continue;
             files_.emplace_back(it->path().string());
             ec.clear();

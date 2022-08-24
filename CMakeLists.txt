@@ -17,6 +17,9 @@ enable_gcc_warning(all)
 enable_colors()
 
 set(CMAKE_CXX_STANDARD 11)
+if(FMIDI_PROGRAMS)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 if(CMAKE_SYSTEM_NAME MATCHES Windows)
@@ -28,9 +31,6 @@ endif()
 #####################
 
 if(FMIDI_PROGRAMS)
-  set(Boost_USE_STATIC_LIBS ON)
-  find_package(Boost OPTIONAL_COMPONENTS filesystem system)
-
   set(fmidi-play_BUILD FALSE)
   find_library(ev_LIBRARY ev)
 
@@ -48,8 +48,6 @@ if(FMIDI_PROGRAMS)
     message(STATUS "rtmidi is missing, NOT building program fmidi-play.")
   elseif(NOT CURSES_FOUND)
     message(STATUS "curses is missing, NOT building program fmidi-play.")
-  elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND NOT (Boost_FOUND AND Boost_FILESYSTEM_LIBRARY AND Boost_SYSTEM_LIBRARY))
-    message(STATUS "Boost is missing, NOT building program fmidi-play.")
   elseif(NOT ev_LIBRARY)
     message(STATUS "libev is missing, NOT building program fmidi-play.")
   else()
@@ -184,9 +182,8 @@ if(FMIDI_PROGRAMS)
       RUNTIME DESTINATION "bin")
     install(FILES "man/fmidi-play.1"
       DESTINATION "share/man/man1")
-    if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-      target_compile_definitions(fmidi-play PRIVATE "FMIDI_PLAY_USE_BOOST_FILESYSTEM=")
-      target_link_libraries(fmidi-play PRIVATE "${Boost_FILESYSTEM_LIBRARY}" "${Boost_SYSTEM_LIBRARY}")
+    if(fmidi_HAVE_FTS)
+      target_compile_definitions(fmidi-play PRIVATE "FMIDI_PLAY_HAVE_FTS")
     endif()
   endif()
 
